@@ -14,7 +14,7 @@ void main (){
     print("Sou um programa inutil, assim como seu programador.");
 
     Cache <String> stringCache; //usando String como tipo do dado
-    Cache <int> intCache; //usando item como tipo do dado
+    Cache <int> intCache; //usando int como tipo do dado
 
     var x = Color.red; //usando o tipo enumerado
 
