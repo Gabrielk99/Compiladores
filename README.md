@@ -2,7 +2,7 @@
 Trabalho de compiladores
 
 ## CP1
-Diretorio que contém os casos testes o parser e scanner do Dart, Dart.g4, e o makefile.
+Diretorio que contém os casos testes, o parser e scanner do Dart (Dart.g4), e o makefile.
 
 
 ## Casos Testes
