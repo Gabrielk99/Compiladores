@@ -1,6 +1,11 @@
 # Compiladores
 Trabalho de compiladores
 
+## CP1
+Diretorio que contém os casos testes o parser e scanner do Dart, Dart.g4, e o makefile.
+
+
 ## Casos Testes
 
-A pasta de casos testes contém todos os casos de teste para o trabalho
+Os arquivos caso_test_*.dart são os arquivos sem erros
+Os arquivos na pasta casosComErro são todos os testes com erros
