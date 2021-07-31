@@ -1,3 +1,7 @@
+x-special/nautilus-clipboard
+copy
+file:///home/gabriel/Desktop/My_tasks/IA-DEEPLEARNING/IC/Codigos/container/vale/data_vale/audio
+file:///home/gabriel/Desktop/My_tasks/IA-DEEPLEARNING/IC/Codigos/container/vale/data_vale/label
 // Copyright (c) 2017, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
@@ -328,10 +332,10 @@ declaration
     |    EXTERNAL (STATIC? finalVarOrType | COVARIANT varOrType) identifierList
     |    ABSTRACT (finalVarOrType | COVARIANT varOrType) identifierList
     |    EXTERNAL? operatorSignature
-    |    STATIC (FINAL | CONST) type? staticFinalDeclarationList
-    |    STATIC LATE FINAL type? initializedIdentifierList
-    |    (STATIC | COVARIANT) LATE? varOrType initializedIdentifierList
-    |    LATE? (FINAL type? | varOrType) initializedIdentifierList
+    |    STATIC (FINAL | CONST) type? staticFinalDeclarationList            //declaraçãoDeVariavel?
+    |    STATIC LATE FINAL type? initializedIdentifierList                //declaraçãoDeVariavel?
+    |    (STATIC | COVARIANT) LATE? varOrType initializedIdentifierList //declaraçãoDeVariavel?
+    |    LATE? (FINAL type? | varOrType) initializedIdentifierList // declaraçãoDeVariavel? ESSE
     |    redirectingFactoryConstructorSignature
     |    constantConstructorSignature (redirection | initializers)?
     |    constructorSignature (redirection | initializers)?
@@ -728,12 +732,12 @@ incrementOperator
     :    '++'
     |    '--'
     ;
-assignableExpression
+assignableExpression //declaracaoDeVariavel com tipagem
     :    SUPER unconditionalAssignableSelector
     |    primary assignableSelectorPart
     |    identifier
     ;
-assignableSelectorPart
+assignableSelectorPart //?
     :    selector* assignableSelector
     ;
 unconditionalAssignableSelector
@@ -742,7 +746,7 @@ unconditionalAssignableSelector
     ;
 assignableSelector
     :    unconditionalAssignableSelector
-    |    '?.' identifier
+    |    '?.' identifier        //declaracaoDeVariavel?
     |    '?' '[' expression ']'
     ;
 identifierNotFUNCTION
@@ -766,7 +770,7 @@ qualifiedName
     ;
 typeIdentifier
     :    IDENTIFIER
-    |    DYNAMIC // Built-in identifier that can be used as a type.
+    |    DYNAMIC // Built-in identifier that can be used as a type. (declaracaoDeVariavel)
     |    ASYNC // Not a built-in identifier.
     |    HIDE // Not a built-in identifier.
     |    OF // Not a built-in identifier.
@@ -957,25 +961,25 @@ uriTest
     ;
 type
     :    functionType '?'?
-    |    typeNotFunction
+    |    typeNotFunction //declaracaoDeVariavel
     ;
 typeNotVoid
     :    functionType '?'?
     |    typeNotVoidNotFunction
     ;
 typeNotFunction
-    :    typeNotVoidNotFunction
+    :    typeNotVoidNotFunction //declaracaoDeVariavel
     |    VOID
     ;
 typeNotVoidNotFunction
-    :    typeName typeArguments? '?'?
+    :    typeName typeArguments? '?'? //declaracaoDeVariavel
     |    FUNCTION '?'?
     ;
 typeName
     :    typeIdentifier ('.' typeIdentifier)?
     ;
 typeArguments
-    :    '<' typeList '>'
+    :    '<' typeList '>' //declaracaoDeVariavel
     ;
 typeList
     :    type (',' type)*

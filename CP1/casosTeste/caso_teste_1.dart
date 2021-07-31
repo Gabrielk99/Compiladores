@@ -1,10 +1,12 @@
 //Um simples programa introdutorio a dart
 //Abordando um main, um if, e uma interpolação de String
 
+bool mikaella=false;
+
 int main(){
 
     bool yes = true;
-    int x = 5;
+    inter x = 5;
     int y = 3;
 
     if(yes){
