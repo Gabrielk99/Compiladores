@@ -25,13 +25,8 @@ public enum Type {
     VOID_TYPE {
         public String toString() {return "void";}
     },
-    NUM_TYPE{
-        public String toString() {return "num";}
-    },
     NO_TYPE{ // usado para indicar erros de tipos.
         public String toString() {return "no_type";}
     };
-
-
 
 }

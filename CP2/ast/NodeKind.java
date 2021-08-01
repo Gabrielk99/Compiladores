@@ -13,13 +13,13 @@ NODES:
 Atribuições - ok
 Função - ok
 If - ok
-Operadores Aritméticos
-Operadores Logicos
+Operadores Aritméticos - ok
+Operadores Logicos - ok
 Tipos valores -ok
-Bloco
+Bloco - ok
 For - ok
-While
-Conversão de tipo
+While - ok
+Conversão de tipo - ok
 */
 
 // ----------------------------------------------------------------------------------- \\
@@ -62,19 +62,70 @@ public enum NodeKing {
     STR_VAL_NODE{
         public String toString() {return "";}
     },
-    NUM_VAL_NODE{
-        public String toString() {return "";}
-    },
     FOR_NODE{
         public String toString() {return "for";}
-    };
-
-
-
-
-
-
-
-
-
+    },
+    PLUS_NODE{
+        public String toString() {return "+";}
+    },
+    MINUS_NODE{
+        public String toString() {return "-";}
+    },
+    TIMES_NODE{
+        public String toString() {return "*";}
+    },
+    OVER_NODE{
+        public String toString() {return "/";}
+    },
+    OVER_INT_NODE{
+        public String toString() {return "~/";}
+    },
+    MOD_NODE{
+        public String toString() {return "%";}
+    },
+    LT_NODE{
+        public String toString() {return "<";}
+    },
+    GT_NODE{
+        public String toString() {return ">";}
+    },
+    LEQ_NODE{
+        public String toString() {return "<=";}
+    },
+    GEQ_NODE{
+        public String toString() {return ">=";}
+    },
+    AS_NODE{                                    
+        public String toString() {return "as";}
+    },
+    IS_NODE{                                    
+        public String toString() {return "is";} //Considerar?
+    },
+    IS_NOT_NODE{
+        public String toString() {return "is!";} //Considerar?
+    },
+    EQ_NODE{
+        public String toString() {return "==";}
+    },
+    NEQ_NODE{
+        public String toString() {return "=!";}
+    },
+    OR_NODE{
+        public String toString() {return "||";}
+    },
+    AND_NODE{
+        public String toString() {return "&&";}
+    },
+    BLOCK_NODE{
+        public String toString() {return "block";}
+    },
+    WHILE_NODE{
+        public String toString() {return "while";}
+    },
+    I2D_NODE{
+        public String toString() {return "I2D";}
+    }
+    D2I_NODE{
+        public String toString() {return "D2I";}
+    }
 }
