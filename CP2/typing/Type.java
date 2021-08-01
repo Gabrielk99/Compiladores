@@ -19,9 +19,6 @@ public enum Type {
     STR_TYPE{
         public String toString() {return "string";}
     },
-    NULL_TYPE {
-        public String toString() {return "null";}
-    },
     VOID_TYPE {
         public String toString() {return "void";}
     },

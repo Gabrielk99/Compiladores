@@ -95,9 +95,6 @@ public enum NodeKing {
     GEQ_NODE{
         public String toString() {return ">=";}
     },
-    AS_NODE{                                    
-        public String toString() {return "as";}
-    },
     IS_NODE{                                    
         public String toString() {return "is";} //Considerar?
     },
