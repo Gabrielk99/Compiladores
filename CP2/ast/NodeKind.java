@@ -96,10 +96,10 @@ public enum NodeKing {
         public String toString() {return ">=";}
     },
     IS_NODE{                                    
-        public String toString() {return "is";} //Considerar?
+        public String toString() {return "is";} 
     },
     IS_NOT_NODE{
-        public String toString() {return "is!";} //Considerar?
+        public String toString() {return "is!";} 
     },
     EQ_NODE{
         public String toString() {return "==";}
@@ -121,8 +121,28 @@ public enum NodeKing {
     },
     I2D_NODE{
         public String toString() {return "I2D";}
-    }
+    },
     D2I_NODE{
         public String toString() {return "D2I";}
-    }
+    },
+    VAR_DECL_NODE {
+		public String toString() {
+            return "var_decl";
+        }
+	},
+    FUNC_DECL_NODE {
+		public String toString() {
+            return "func_decl";
+        }
+	},
+    VAR_USE_NODE {
+		public String toString() {
+            return "var_use";
+        }
+	},
+    FUNC_USE_NODE {
+		public String toString() {
+            return "func_use";
+        }
+	};
 }
