@@ -122,9 +122,6 @@ public enum NodeKing {
     I2D_NODE{
         public String toString() {return "I2D";}
     },
-    D2I_NODE{
-        public String toString() {return "D2I";}
-    },
     VAR_DECL_NODE {
 		public String toString() {
             return "var_decl";
