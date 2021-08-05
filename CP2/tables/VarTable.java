@@ -8,36 +8,35 @@ import java.util.List;
 import typing.Type;
 
 public final class VarTable{
-    private Hashtable<String, Entry> table = new Hashtable<String, Entry>();
+    private Hashtable<Key, Entry> table = new Hashtable<Key, Entry>();
 
-    public boolean lookupVar(String s) {
-        return table.containsKey(s);
+    public boolean lookupVar(String s, int id) {
+		Key aux_key = new Key(s, id);
+        return table.containsKey(aux_key);
 	}
 	
-	public void addVar(String s, int line, Type type, int id_escopo, int escopo) {
-		Entry entry = new Entry(s, line, type, id_escopo, escopo);
-		table.put(s, entry);
+	public void addVar(String s, int line, Type type, int id_escopo) {
+		Key key = new Key(s, id_escopo);
+		Entry entry = new Entry(s, line, type, id_escopo);
+		table.put(key, entry);
 	}
 	
-	public String getName(String s) {
-		return table.get(s).name;
+	public String getName(Key k) {
+		return table.get(k).name;
 	}
 	
-	public int getLine(String s) {
-		return table.get(s).line;
+	public int getLine(Key k) {
+		return table.get(k).line;
 	}
 	
-	public Type getType(String s) {
-		return table.get(s).type;
-	}
-
-    public int getIdEscopo(String s) {
-		return table.get(s).id_escopo;
+	public Type getType(Key k) {
+		return table.get(k).type;
 	}
 
-    public int getEscopo(String s) {
-		return table.get(s).escopo;
+    public int getIdEscopo(Key k) {
+		return table.get(k).id_escopo;
 	}
+
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
@@ -46,9 +45,9 @@ public final class VarTable{
 		for (Map.Entry mapElement : table.entrySet()) {
             String key = (String)mapElement.getKey();
 
-			f.format("Entry %d -- name: %s, line: %d, type: %s, id_escopo: %d, escopo: %d\n",
+			f.format("Entry %d -- name: %s, line: %d, type: %s, id_escopo: %d\n",
 	                 getName(key), getLine(key), getType(key).toString(), 
-                     getIdEscopo(key), getEscopo(key));
+                     getIdEscopo(key));
 		}
 		f.close();
 		return sb.toString();
@@ -59,14 +58,13 @@ public final class VarTable{
 		private final int line;
 		private final Type type;
         private final int id_escopo;        
-        private final int escopo;
 		
-		Entry(String name, int line, Type type, int id_escopo, int escopo) {
+		Entry(String name, int line, Type type, int id_escopo) {
 			this.name = name;
 			this.line = line;
 			this.type = type;
             this.id_escopo = id_escopo;
-            this.escopo = escopo;
 		}
 	}
+
 }
