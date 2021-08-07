@@ -26,4 +26,51 @@ public enum Type {
         public String toString() {return "no_type";}
     };
 
+    // Tabela de unificação de tipos primitivos para "+"
+    private static Type plus[][] = {
+        {INT_TYPE,DOUBLE_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}, //int
+        {DOUBLE_TYPE,DOUBLE_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}, //double
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}, //bool
+        {NO_TYPE,NO_TYPE,NO_TYPE,STR_TYPE,NO_TYPE}, //string
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE} //void
+    };
+
+    public Type unifyPlus(Type that){return plus [this.ordinal()][that.ordinal()];}
+
+    //Tabela de unificação dos tipos primitivos para os 
+    //outros operadores aritméticos
+
+    private static Type other[][] = {
+        {INT_TYPE,DOUBLE_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {DOUBLE_TYPE,DOUBLE_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}
+    };
+
+    public Type unifyOtherArith(Type that) {return other[this.ordinal()][that.ordinal()];};
+
+    //Tabela de unificação para "=="
+
+    private static Type equals[][] = {
+        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,BOOL_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}
+    };
+
+    public Type unifyEquals(Type that){ return equals[this.ordinal()][that.ordinal()];}
+
+    //Tabela de unificação para outros operadores de comparação
+
+    private static Type comp[][] = {
+        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}
+    };
+
+    public Type unifyComp(Type that){ return comp[this.ordinal()][that.ordinal()];}
 }
