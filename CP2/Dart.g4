@@ -162,23 +162,22 @@ libraryDefinition
          (metadata topLevelDefinition)*
          EOF
     ;
-topLevelDefinition
-    :    classDeclaration
-    |    mixinDeclaration
-    |    extensionDeclaration
-    |    enumType
-    |    typeAlias
-    |    EXTERNAL functionSignature ';'
-    |    EXTERNAL getterSignature ';'
-    |    EXTERNAL setterSignature ';'
-    |    EXTERNAL finalVarOrType identifierList ';'
-    |    getterSignature functionBody
-    |    setterSignature functionBody
-    |    functionSignature functionBody
-    |    (FINAL | CONST) type? staticFinalDeclarationList ';'
-    |    LATE FINAL type? initializedIdentifierList ';'
-    |    LATE? varOrType identifier ('=' expression)?  #topLevelVarDecl
-         (',' initializedIdentifier)* ';'
+topLevelDefinition 
+    :    classDeclaration #classDecl
+    |    mixinDeclaration #mixDecl
+    |    extensionDeclaration #exDecl
+    |    enumType #enDecl 
+    |    typeAlias #typeAl
+    |    EXTERNAL functionSignature ';' #extFunc
+    |    EXTERNAL getterSignature ';' #extGet
+    |    EXTERNAL setterSignature ';' #extSet
+    |    EXTERNAL finalVarOrType identifierList ';' #extId
+    |    getterSignature functionBody #getFunc
+    |    setterSignature functionBody #setFunc
+    |    functionSignature functionBody #Func
+    |    (FINAL | CONST) type? staticFinalDeclarationList ';' #finalVarDecl
+    |    LATE FINAL type? initializedIdentifierList ';' #lateFinalVarDecl
+    |    LATE? varOrType identifier ('=' expression)?  (',' initializedIdentifier)* ';'   #topLevelVarDecl 
     ;
 declaredIdentifier
     :    COVARIANT? finalConstVarOrType identifier
@@ -456,13 +455,13 @@ constructorInvocation
     |    typeName '.' NEW arguments
     ;
 literal
-    :    nullLiteral 
-    |    booleanLiteral
-    |    numericLiteral 
+    :    nullLiteral #nullVal
+    |    booleanLiteral #boolVal
+    |    numericLiteral #numVal
     |    stringLiteral  #strVal
-    |    symbolLiteral
-    |    setOrMapLiteral
-    |    listLiteral
+    |    symbolLiteral #symbolVal
+    |    setOrMapLiteral #setVal
+    |    listLiteral #listVal
     ;
 nullLiteral
     :    NULL
@@ -747,14 +746,12 @@ assignableSelector
     ;
 identifierNotFUNCTION
     :    IDENTIFIER               #varName
-    |    builtInIdentifier
-    |    ASYNC // Not a built-in identifier.
-    |    HIDE // Not a built-in identifier.
-    |    OF // Not a built-in identifier.
-    |    ON // Not a built-in identifier.
-    |    SHOW // Not a built-in identifier.
-    |    SYNC // Not a built-in identifier.
-    |    { asyncEtcPredicate(getCurrentToken().getType()) }? (AWAIT|YIELD)
+    |    builtInIdentifier #bultInID
+    |    ASYNC          #asC// Not a built-in identifier. 
+    |    HIDE           #hD
+    |    SHOW           #sW    // Not a built-in identifier.
+    |    SYNC           #sC    // Not a built-in identifier.
+    |    { asyncEtcPredicate(getCurrentToken().getType()) }? (AWAIT|YIELD) #awYD
     ;
 identifier
     :    identifierNotFUNCTION
@@ -766,14 +763,14 @@ qualifiedName
     ;
 typeIdentifier
     :    IDENTIFIER        #typeId
-    |    DYNAMIC // Built-in identifier that can be used as a type. (declaracaoDeVariavel)
-    |    ASYNC // Not a built-in identifier.
-    |    HIDE // Not a built-in identifier.
-    |    OF // Not a built-in identifier.
-    |    ON // Not a built-in identifier.
-    |    SHOW // Not a built-in identifier.
-    |    SYNC // Not a built-in identifier.
-    |    { asyncEtcPredicate(getCurrentToken().getType()) }? (AWAIT|YIELD)
+    |    DYNAMIC       #dnmc // Built-in identifier that can be used as a type. (declaracaoDeVariavel)
+    |    ASYNC         #asCtype // Not a built-in identifier.
+    |    HIDE          #hDtype // Not a built-in identifier.
+    |    OF            #ofType // Not a built-in identifier.
+    |    ON            #onType // Not a built-in identifier.
+    |    SHOW           #swType// Not a built-in identifier.
+    |    SYNC           #sCType // Not a built-in identifier.
+    |    { asyncEtcPredicate(getCurrentToken().getType()) }? (AWAIT|YIELD) #awYDType
     ;
 typeTest
     :    isOperator typeNotVoid
@@ -1349,9 +1346,9 @@ SYNC
     ;
 // Lexical tokens that are not words.
 NUMBER
-    :    DIGIT+ '.' DIGIT+ EXPONENT? #doubleVal
-    |    DIGIT+ EXPONENT?      #intVal
-    |    '.' DIGIT+ EXPONENT? #doubleValOnlyDecimal
+    :    DIGIT+ '.' DIGIT+ EXPONENT?        
+    |    DIGIT+ EXPONENT?     
+    |    '.' DIGIT+ EXPONENT?     
     ;
 HEX_NUMBER
     :    '0x' HEX_DIGIT+

@@ -54,7 +54,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitVarName (VarNameContext ctx) {
         lastVar = ctx.getSymbol();
         return null;
-    }
+    } //mePareceCorreto qual a diferença de getText e getSymbol?
 
     @Override
     public AST visitTypeId(TypeIdContext ctx){
@@ -73,9 +73,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         case "boolean":
             lastType = BOOL_TYPE;
         break;
+        case "void":
+            lastType = VOID_TYPE;
         default:
-            lastType = NO_TYPE; // Lançar um erro?
-    }
+            lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void)
+    }//correto pelo meu ver
 
     @Override
     public AST visitTopLevelVarDecl(TopLevelVarDeclContext ctx) {
@@ -86,7 +88,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         if (ctx.expression() != null)
             visit(ctx.expression());
-    }
+    }// falta verificar o initializedIdentifier e chamar caso haja
 
     // ------------------ Literais ------------------
     @Override

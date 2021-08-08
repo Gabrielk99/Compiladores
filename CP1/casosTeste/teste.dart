@@ -5,5 +5,7 @@ void main() {
 	String multiline = ''' Varias linhas
 agora''';
 
-	print(a);
+	print("chola");
+	print('cola');
+	print('b ${3+5}');
 }

@@ -765,7 +765,7 @@ qualifiedName
     |    typeIdentifier '.' typeIdentifier '.' (identifier | NEW)
     ;
 typeIdentifier
-    :    IDENTIFIER
+    :    IDENTIFIER {System.out.println($IDENTIFIER.getText());}
     |    DYNAMIC // Built-in identifier that can be used as a type. (declaracaoDeVariavel)
     |    ASYNC // Not a built-in identifier.
     |    HIDE // Not a built-in identifier.
@@ -1044,20 +1044,20 @@ symbolLiteral
     ;
 // Not used in the specification (needed here for <uri>).
 singleLineStringWithoutInterpolation
-    :    RAW_SINGLE_LINE_STRING
+    :    RAW_SINGLE_LINE_STRING 
     |    SINGLE_LINE_STRING_DQ_BEGIN_END
     |    SINGLE_LINE_STRING_SQ_BEGIN_END
     ;
 singleLineString
-    :    RAW_SINGLE_LINE_STRING
-    |    SINGLE_LINE_STRING_SQ_BEGIN_END
-    |    SINGLE_LINE_STRING_SQ_BEGIN_MID expression
-         (SINGLE_LINE_STRING_SQ_MID_MID expression)*
-         SINGLE_LINE_STRING_SQ_MID_END
-    |    SINGLE_LINE_STRING_DQ_BEGIN_END
-    |    SINGLE_LINE_STRING_DQ_BEGIN_MID expression
-         (SINGLE_LINE_STRING_DQ_MID_MID expression)*
-         SINGLE_LINE_STRING_DQ_MID_END
+    :    RAW_SINGLE_LINE_STRING {System.out.println($RAW_SINGLE_LINE_STRING.getText());}
+    |    SINGLE_LINE_STRING_SQ_BEGIN_END {System.out.println($SINGLE_LINE_STRING_SQ_BEGIN_END.getText());}
+    |    SINGLE_LINE_STRING_SQ_BEGIN_MID expression 
+         (SINGLE_LINE_STRING_SQ_MID_MID expression)* 
+         SINGLE_LINE_STRING_SQ_MID_END 
+    |    SINGLE_LINE_STRING_DQ_BEGIN_END {System.out.println($SINGLE_LINE_STRING_DQ_BEGIN_END.getText());}
+    |    SINGLE_LINE_STRING_DQ_BEGIN_MID expression 
+         (SINGLE_LINE_STRING_DQ_MID_MID expression)* 
+         SINGLE_LINE_STRING_DQ_MID_END 
     ;
 multiLineString
     :    RAW_MULTI_LINE_STRING
@@ -1356,10 +1356,10 @@ HEX_NUMBER
     :    '0x' HEX_DIGIT+
     |    '0X' HEX_DIGIT+
     ;
-RAW_SINGLE_LINE_STRING
-    :    'r' '\'' (~('\'' | '\r' | '\n'))* '\''
-    |    'r' '"' (~('"' | '\r' | '\n'))* '"'
-    ;
+RAW_SINGLE_LINE_STRING 
+    :    'r' '\'' (~('\'' | '\r' | '\n'))* '\'' 
+    |    'r' '"' (~('"' | '\r' | '\n'))* '"' 
+    ; 
 RAW_MULTI_LINE_STRING
     :    'r' '"""' (.)*? '"""'
     |    'r' '\'\'\'' (.)*? '\'\'\''
