@@ -28,7 +28,7 @@ javac:
 	$(JAVAC) $(CLASS_PATH_OPTION) ./*.java
 
 # Escreva o arquivo que você quer testar
-FILE=casosTeste/caso_teste_1.dart
+FILE=casosTeste/teste.dart
 # Ou casosTeste/casosComErro/file
 run:
 	$(GRUN) Dart libraryDefinition -gui $(FILE)
