@@ -4,11 +4,13 @@ import typing.Type.*;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import parser.Dart.IntValContext;
-import parser.Dart.DoubleValContext;
-import parser.Dart.DoubleValOnlyDecimalContext;
-import parser.Dart.MultiLineStringContext;
-import parser.Dart.SingleLineStringContext;
+import parser.Dart.NumValContext;
+import parser Dart.SingleLineRawStrContext;
+import parser Dart.SingleLineSQStrContext;
+import parser Dart.SingleLineDQStrContext;
+import parser Dart.MultiLineRawStrContext;
+import parser Dart.MultiLineSQStrContext;
+import parser Dart.MultiLineDQStrContext;
 import parser.Dart.TrueValContext;
 import parser.Dart.FalseValContext;
 import parser.Dart.TypeIdContext;
@@ -54,7 +56,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitVarName (VarNameContext ctx) {
         lastVar = ctx.getSymbol();
         return null;
-    } //mePareceCorreto qual a diferença de getText e getSymbol?
+    }
 
     @Override
     public AST visitTypeId(TypeIdContext ctx){
@@ -76,7 +78,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         case "void":
             lastType = VOID_TYPE;
         default:
-            lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void)
+            lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
     }//correto pelo meu ver
 
     @Override
@@ -88,38 +90,61 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         if (ctx.expression() != null)
             visit(ctx.expression());
-    }// falta verificar o initializedIdentifier e chamar caso haja
+        if (ctx.initializedIdentifier() != null)
+            visit(ctx.initializedIdentifier());
+    }
 
     // ------------------ Literais ------------------
     @Override
-    public AST visitIntVal(IntValContext ctx) {
-        int intData = Integer.parseInt(ctx.getText());
+    public AST visitNumVal(NumValContext ctx) {
+        String value = ctx.getText();
+        if(value.matches("(.*).(.*)"))
+            double num = Double.parseDouble(value);
+        else
+            int num = Integer.parseInt(value);
         return null;
     }
-    @Override
-    public AST visitDoubleVal(DoubleValContext ctx) {
-        double doubleData = Double.parseDouble(ctx.getText());
-        return null;
-    }
-    @Override
-    public AST visitDoubleValOnlyDecimal(DoubleValOnlyDecimalContext ctx) {
-        double doubleData = Double.parseDouble(ctx.getText());
-        return null;
-    }
-    @Override
-    public AST visitMultiLineString(MultiLineStringContext ctx) {
-        String strData = ctx.RAW_MULTI_LINE_STRING().getText();
-        st.addStr(strData);
 
+    // String de linha unica
+    @Override
+    public AST visitSingleLineRawStr(SingleLineRawStrContext ctx) {
+        String strData = ctx.getText();
+        st.addStr(strData);
         return null;
     }
     @Override
-    public AST visitSingleLineString(SingleLineStringContext ctx) {
-        String strData = ctx.RAW_SINGLE_LINE_STRING().getText();
+    public AST visitSingleLineSQStr(SingleLineSQStrContext ctx) {
+        String strData = ctx.getText();
         st.addStr(strData);
-
         return null;
     }
+    @Override
+    public AST visitSingleLineDQStr(SingleLineDQStrContext ctx) {
+        String strData = ctx.getText();
+        st.addStr(strData);
+        return null;
+    }
+    //String de multiplas linhas
+    @Override
+    public AST visitMultiLineRawStr(MultiLineRawStrContext ctx) {
+        String strData = ctx.getText();
+        st.addStr(strData);
+        return null;
+    }
+    @Override
+    public AST visitMultiLineSQStr(MultiLineSQStrContext ctx) {
+        String strData = ctx.getText();
+        st.addStr(strData);
+        return null;
+    }
+    @Override
+    public AST visitMultiLineDQStr(MultiLineDQStrContext ctx) {
+        String strData = ctx.getText();
+        st.addStr(strData);
+        return null;
+    }
+
+    //Booleanos
     @Override
     public AST visitTrueVal(TrueValContext ctx) {
         // Só serve pra adicionar na ast o nó com intData = 1

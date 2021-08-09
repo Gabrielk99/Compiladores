@@ -1046,27 +1046,27 @@ singleLineStringWithoutInterpolation
     |    SINGLE_LINE_STRING_SQ_BEGIN_END
     ;
 singleLineString
-    :    RAW_SINGLE_LINE_STRING
-    |    SINGLE_LINE_STRING_SQ_BEGIN_END
+    :    RAW_SINGLE_LINE_STRING      #singleLineRawStr
+    |    SINGLE_LINE_STRING_SQ_BEGIN_END   #singleLineSQStr
     |    SINGLE_LINE_STRING_SQ_BEGIN_MID expression
          (SINGLE_LINE_STRING_SQ_MID_MID expression)*
-         SINGLE_LINE_STRING_SQ_MID_END
-    |    SINGLE_LINE_STRING_DQ_BEGIN_END
+         SINGLE_LINE_STRING_SQ_MID_END     #singleLineSQMidStr
+    |    SINGLE_LINE_STRING_DQ_BEGIN_END   #singleLineDQStr
     |    SINGLE_LINE_STRING_DQ_BEGIN_MID expression
          (SINGLE_LINE_STRING_DQ_MID_MID expression)*
-         SINGLE_LINE_STRING_DQ_MID_END
+         SINGLE_LINE_STRING_DQ_MID_END    #singleLineDQMidStr
     ; 
     
 multiLineString
-    :    RAW_MULTI_LINE_STRING
-    |    MULTI_LINE_STRING_SQ_BEGIN_END
+    :    RAW_MULTI_LINE_STRING       #multiLineRawStr
+    |    MULTI_LINE_STRING_SQ_BEGIN_END    #multiLineSQStr
     |    MULTI_LINE_STRING_SQ_BEGIN_MID expression
          (MULTI_LINE_STRING_SQ_MID_MID expression)*
-         MULTI_LINE_STRING_SQ_MID_END
-    |    MULTI_LINE_STRING_DQ_BEGIN_END
+         MULTI_LINE_STRING_SQ_MID_END      #multiLineSQMidStr
+    |    MULTI_LINE_STRING_DQ_BEGIN_END    #multiLineDQStr
     |    MULTI_LINE_STRING_DQ_BEGIN_MID expression
          (MULTI_LINE_STRING_DQ_MID_MID expression)*
-         MULTI_LINE_STRING_DQ_MID_END
+         MULTI_LINE_STRING_DQ_MID_END     #multiLineDQMidStr
     ;
 reservedWord
     :    ASSERT

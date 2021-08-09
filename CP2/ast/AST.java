@@ -15,26 +15,28 @@ public class AST {
 	public  final int intData;
 	public  final double doubleData;
 	public  final Type type;
+	public final Key key;
 	private final List<AST> children; // Privado para que a manipulação da lista seja controlável.
 
 	// Construtor completo para poder tornar todos os campos finais.
 	// Privado porque não queremos os dois campos 'data' preenchidos ao mesmo tempo.
-	private AST(NodeKind kind, int intData, double doubleData, Type type) {
+	private AST(NodeKind kind, int intData, double doubleData, Type type, Key key) {
 		this.kind = kind;
 		this.intData = intData;
 		this.doubleData = doubleData;
 		this.type = type;
 		this.children = new ArrayList<AST>();
+		this.key = key;
 	}
 
 	// Cria o nó com um dado inteiro.
-	public AST(NodeKind kind, int intData, Type type) {
-		this(kind, intData, 0.0f, type);
+	public AST(NodeKind kind, int intData, Type type, Key key) {
+		this(kind, intData, 0.0f, type, key);
 	}
 
 	// Cria o nó com um dado double.
-	public AST(NodeKind kind, double doubleData, Type type) {
-		this(kind, 0, doubleData, type);
+	public AST(NodeKind kind, double doubleData, Type type, Key key) {
+		this(kind, 0, doubleData, type, key);
 	}
 
 	// Adiciona um novo filho ao nó.
@@ -52,7 +54,7 @@ public class AST {
 	}
 
 	// Cria um nó e pendura todos os filhos passados como argumento.
-	public static AST newSubtree(NodeKind kind, Type type, AST... children) {
+	public static AST newSubtree(NodeKind kind, Type type, Key key, AST... children) {
 		AST node = new AST(kind, 0, type);
 	    for (AST child: children) {
 	    	node.addChild(child);
