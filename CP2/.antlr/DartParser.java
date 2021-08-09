@@ -5047,41 +5047,76 @@ public class DartParser extends Parser {
 	}
 
 	public static class PrimaryContext extends ParserRuleContext {
-		public ThisExpressionContext thisExpression() {
-			return getRuleContext(ThisExpressionContext.class,0);
-		}
-		public TerminalNode SUPER() { return getToken(DartParser.SUPER, 0); }
-		public UnconditionalAssignableSelectorContext unconditionalAssignableSelector() {
-			return getRuleContext(UnconditionalAssignableSelectorContext.class,0);
-		}
-		public ConstObjectExpressionContext constObjectExpression() {
-			return getRuleContext(ConstObjectExpressionContext.class,0);
-		}
-		public NewExpressionContext newExpression() {
-			return getRuleContext(NewExpressionContext.class,0);
-		}
-		public ConstructorInvocationContext constructorInvocation() {
-			return getRuleContext(ConstructorInvocationContext.class,0);
-		}
-		public FunctionPrimaryContext functionPrimary() {
-			return getRuleContext(FunctionPrimaryContext.class,0);
-		}
-		public ExpressionContext expression() {
-			return getRuleContext(ExpressionContext.class,0);
-		}
-		public LiteralContext literal() {
-			return getRuleContext(LiteralContext.class,0);
-		}
-		public IdentifierContext identifier() {
-			return getRuleContext(IdentifierContext.class,0);
-		}
-		public ConstructorTearoffContext constructorTearoff() {
-			return getRuleContext(ConstructorTearoffContext.class,0);
-		}
 		public PrimaryContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
 		@Override public int getRuleIndex() { return RULE_primary; }
+	 
+		public PrimaryContext() { }
+		public void copyFrom(PrimaryContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	public static class PrimNewExpressionContext extends PrimaryContext {
+		public NewExpressionContext newExpression() {
+			return getRuleContext(NewExpressionContext.class,0);
+		}
+		public PrimNewExpressionContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimThisExpressionContext extends PrimaryContext {
+		public ThisExpressionContext thisExpression() {
+			return getRuleContext(ThisExpressionContext.class,0);
+		}
+		public PrimThisExpressionContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimConstObjectExpressionContext extends PrimaryContext {
+		public ConstObjectExpressionContext constObjectExpression() {
+			return getRuleContext(ConstObjectExpressionContext.class,0);
+		}
+		public PrimConstObjectExpressionContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimExpressionContext extends PrimaryContext {
+		public ExpressionContext expression() {
+			return getRuleContext(ExpressionContext.class,0);
+		}
+		public PrimExpressionContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimLiteralContext extends PrimaryContext {
+		public LiteralContext literal() {
+			return getRuleContext(LiteralContext.class,0);
+		}
+		public PrimLiteralContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimIdentifierContext extends PrimaryContext {
+		public IdentifierContext identifier() {
+			return getRuleContext(IdentifierContext.class,0);
+		}
+		public PrimIdentifierContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimUnconditionalAssignableContext extends PrimaryContext {
+		public TerminalNode SUPER() { return getToken(DartParser.SUPER, 0); }
+		public UnconditionalAssignableSelectorContext unconditionalAssignableSelector() {
+			return getRuleContext(UnconditionalAssignableSelectorContext.class,0);
+		}
+		public PrimUnconditionalAssignableContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimConstructorTearoffContext extends PrimaryContext {
+		public ConstructorTearoffContext constructorTearoff() {
+			return getRuleContext(ConstructorTearoffContext.class,0);
+		}
+		public PrimConstructorTearoffContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimFunctionPrimaryContext extends PrimaryContext {
+		public FunctionPrimaryContext functionPrimary() {
+			return getRuleContext(FunctionPrimaryContext.class,0);
+		}
+		public PrimFunctionPrimaryContext(PrimaryContext ctx) { copyFrom(ctx); }
+	}
+	public static class PrimConstructorInvocationContext extends PrimaryContext {
+		public ConstructorInvocationContext constructorInvocation() {
+			return getRuleContext(ConstructorInvocationContext.class,0);
+		}
+		public PrimConstructorInvocationContext(PrimaryContext ctx) { copyFrom(ctx); }
 	}
 
 	public final PrimaryContext primary() throws RecognitionException {
@@ -5092,6 +5127,7 @@ public class DartParser extends Parser {
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,116,_ctx) ) {
 			case 1:
+				_localctx = new PrimThisExpressionContext(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(1183);
@@ -5099,6 +5135,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 2:
+				_localctx = new PrimUnconditionalAssignableContext(_localctx);
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(1184);
@@ -5108,6 +5145,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 3:
+				_localctx = new PrimConstObjectExpressionContext(_localctx);
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(1186);
@@ -5115,6 +5153,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 4:
+				_localctx = new PrimNewExpressionContext(_localctx);
 				enterOuterAlt(_localctx, 4);
 				{
 				setState(1187);
@@ -5122,6 +5161,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 5:
+				_localctx = new PrimConstructorInvocationContext(_localctx);
 				enterOuterAlt(_localctx, 5);
 				{
 				setState(1188);
@@ -5129,6 +5169,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 6:
+				_localctx = new PrimFunctionPrimaryContext(_localctx);
 				enterOuterAlt(_localctx, 6);
 				{
 				setState(1189);
@@ -5136,6 +5177,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 7:
+				_localctx = new PrimExpressionContext(_localctx);
 				enterOuterAlt(_localctx, 7);
 				{
 				setState(1190);
@@ -5147,6 +5189,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 8:
+				_localctx = new PrimLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 8);
 				{
 				setState(1194);
@@ -5154,6 +5197,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 9:
+				_localctx = new PrimIdentifierContext(_localctx);
 				enterOuterAlt(_localctx, 9);
 				{
 				setState(1195);
@@ -5161,6 +5205,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case 10:
+				_localctx = new PrimConstructorTearoffContext(_localctx);
 				enterOuterAlt(_localctx, 10);
 				{
 				setState(1196);
@@ -13773,8 +13818,29 @@ public class DartParser extends Parser {
 	}
 
 	public static class SingleLineStringContext extends ParserRuleContext {
+		public SingleLineStringContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_singleLineString; }
+	 
+		public SingleLineStringContext() { }
+		public void copyFrom(SingleLineStringContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	public static class SingleLineRawStrContext extends SingleLineStringContext {
 		public TerminalNode RAW_SINGLE_LINE_STRING() { return getToken(DartParser.RAW_SINGLE_LINE_STRING, 0); }
+		public SingleLineRawStrContext(SingleLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class SingleLineDQStrContext extends SingleLineStringContext {
+		public TerminalNode SINGLE_LINE_STRING_DQ_BEGIN_END() { return getToken(DartParser.SINGLE_LINE_STRING_DQ_BEGIN_END, 0); }
+		public SingleLineDQStrContext(SingleLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class SingleLineSQStrContext extends SingleLineStringContext {
 		public TerminalNode SINGLE_LINE_STRING_SQ_BEGIN_END() { return getToken(DartParser.SINGLE_LINE_STRING_SQ_BEGIN_END, 0); }
+		public SingleLineSQStrContext(SingleLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class SingleLineSQMidStrContext extends SingleLineStringContext {
 		public TerminalNode SINGLE_LINE_STRING_SQ_BEGIN_MID() { return getToken(DartParser.SINGLE_LINE_STRING_SQ_BEGIN_MID, 0); }
 		public List<ExpressionContext> expression() {
 			return getRuleContexts(ExpressionContext.class);
@@ -13787,17 +13853,22 @@ public class DartParser extends Parser {
 		public TerminalNode SINGLE_LINE_STRING_SQ_MID_MID(int i) {
 			return getToken(DartParser.SINGLE_LINE_STRING_SQ_MID_MID, i);
 		}
-		public TerminalNode SINGLE_LINE_STRING_DQ_BEGIN_END() { return getToken(DartParser.SINGLE_LINE_STRING_DQ_BEGIN_END, 0); }
+		public SingleLineSQMidStrContext(SingleLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class SingleLineDQMidStrContext extends SingleLineStringContext {
 		public TerminalNode SINGLE_LINE_STRING_DQ_BEGIN_MID() { return getToken(DartParser.SINGLE_LINE_STRING_DQ_BEGIN_MID, 0); }
+		public List<ExpressionContext> expression() {
+			return getRuleContexts(ExpressionContext.class);
+		}
+		public ExpressionContext expression(int i) {
+			return getRuleContext(ExpressionContext.class,i);
+		}
 		public TerminalNode SINGLE_LINE_STRING_DQ_MID_END() { return getToken(DartParser.SINGLE_LINE_STRING_DQ_MID_END, 0); }
 		public List<TerminalNode> SINGLE_LINE_STRING_DQ_MID_MID() { return getTokens(DartParser.SINGLE_LINE_STRING_DQ_MID_MID); }
 		public TerminalNode SINGLE_LINE_STRING_DQ_MID_MID(int i) {
 			return getToken(DartParser.SINGLE_LINE_STRING_DQ_MID_MID, i);
 		}
-		public SingleLineStringContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_singleLineString; }
+		public SingleLineDQMidStrContext(SingleLineStringContext ctx) { copyFrom(ctx); }
 	}
 
 	public final SingleLineStringContext singleLineString() throws RecognitionException {
@@ -13809,6 +13880,7 @@ public class DartParser extends Parser {
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case RAW_SINGLE_LINE_STRING:
+				_localctx = new SingleLineRawStrContext(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(2371);
@@ -13816,6 +13888,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case SINGLE_LINE_STRING_SQ_BEGIN_END:
+				_localctx = new SingleLineSQStrContext(_localctx);
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(2372);
@@ -13823,6 +13896,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case SINGLE_LINE_STRING_SQ_BEGIN_MID:
+				_localctx = new SingleLineSQMidStrContext(_localctx);
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(2373);
@@ -13850,6 +13924,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case SINGLE_LINE_STRING_DQ_BEGIN_END:
+				_localctx = new SingleLineDQStrContext(_localctx);
 				enterOuterAlt(_localctx, 4);
 				{
 				setState(2384);
@@ -13857,6 +13932,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case SINGLE_LINE_STRING_DQ_BEGIN_MID:
+				_localctx = new SingleLineDQMidStrContext(_localctx);
 				enterOuterAlt(_localctx, 5);
 				{
 				setState(2385);
@@ -13899,8 +13975,44 @@ public class DartParser extends Parser {
 	}
 
 	public static class MultiLineStringContext extends ParserRuleContext {
+		public MultiLineStringContext(ParserRuleContext parent, int invokingState) {
+			super(parent, invokingState);
+		}
+		@Override public int getRuleIndex() { return RULE_multiLineString; }
+	 
+		public MultiLineStringContext() { }
+		public void copyFrom(MultiLineStringContext ctx) {
+			super.copyFrom(ctx);
+		}
+	}
+	public static class MultiLineRawStrContext extends MultiLineStringContext {
 		public TerminalNode RAW_MULTI_LINE_STRING() { return getToken(DartParser.RAW_MULTI_LINE_STRING, 0); }
+		public MultiLineRawStrContext(MultiLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class MultiLineSQStrContext extends MultiLineStringContext {
 		public TerminalNode MULTI_LINE_STRING_SQ_BEGIN_END() { return getToken(DartParser.MULTI_LINE_STRING_SQ_BEGIN_END, 0); }
+		public MultiLineSQStrContext(MultiLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class MultiLineDQMidStrContext extends MultiLineStringContext {
+		public TerminalNode MULTI_LINE_STRING_DQ_BEGIN_MID() { return getToken(DartParser.MULTI_LINE_STRING_DQ_BEGIN_MID, 0); }
+		public List<ExpressionContext> expression() {
+			return getRuleContexts(ExpressionContext.class);
+		}
+		public ExpressionContext expression(int i) {
+			return getRuleContext(ExpressionContext.class,i);
+		}
+		public TerminalNode MULTI_LINE_STRING_DQ_MID_END() { return getToken(DartParser.MULTI_LINE_STRING_DQ_MID_END, 0); }
+		public List<TerminalNode> MULTI_LINE_STRING_DQ_MID_MID() { return getTokens(DartParser.MULTI_LINE_STRING_DQ_MID_MID); }
+		public TerminalNode MULTI_LINE_STRING_DQ_MID_MID(int i) {
+			return getToken(DartParser.MULTI_LINE_STRING_DQ_MID_MID, i);
+		}
+		public MultiLineDQMidStrContext(MultiLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class MultiLineDQStrContext extends MultiLineStringContext {
+		public TerminalNode MULTI_LINE_STRING_DQ_BEGIN_END() { return getToken(DartParser.MULTI_LINE_STRING_DQ_BEGIN_END, 0); }
+		public MultiLineDQStrContext(MultiLineStringContext ctx) { copyFrom(ctx); }
+	}
+	public static class MultiLineSQMidStrContext extends MultiLineStringContext {
 		public TerminalNode MULTI_LINE_STRING_SQ_BEGIN_MID() { return getToken(DartParser.MULTI_LINE_STRING_SQ_BEGIN_MID, 0); }
 		public List<ExpressionContext> expression() {
 			return getRuleContexts(ExpressionContext.class);
@@ -13913,17 +14025,7 @@ public class DartParser extends Parser {
 		public TerminalNode MULTI_LINE_STRING_SQ_MID_MID(int i) {
 			return getToken(DartParser.MULTI_LINE_STRING_SQ_MID_MID, i);
 		}
-		public TerminalNode MULTI_LINE_STRING_DQ_BEGIN_END() { return getToken(DartParser.MULTI_LINE_STRING_DQ_BEGIN_END, 0); }
-		public TerminalNode MULTI_LINE_STRING_DQ_BEGIN_MID() { return getToken(DartParser.MULTI_LINE_STRING_DQ_BEGIN_MID, 0); }
-		public TerminalNode MULTI_LINE_STRING_DQ_MID_END() { return getToken(DartParser.MULTI_LINE_STRING_DQ_MID_END, 0); }
-		public List<TerminalNode> MULTI_LINE_STRING_DQ_MID_MID() { return getTokens(DartParser.MULTI_LINE_STRING_DQ_MID_MID); }
-		public TerminalNode MULTI_LINE_STRING_DQ_MID_MID(int i) {
-			return getToken(DartParser.MULTI_LINE_STRING_DQ_MID_MID, i);
-		}
-		public MultiLineStringContext(ParserRuleContext parent, int invokingState) {
-			super(parent, invokingState);
-		}
-		@Override public int getRuleIndex() { return RULE_multiLineString; }
+		public MultiLineSQMidStrContext(MultiLineStringContext ctx) { copyFrom(ctx); }
 	}
 
 	public final MultiLineStringContext multiLineString() throws RecognitionException {
@@ -13935,6 +14037,7 @@ public class DartParser extends Parser {
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case RAW_MULTI_LINE_STRING:
+				_localctx = new MultiLineRawStrContext(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(2398);
@@ -13942,6 +14045,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case MULTI_LINE_STRING_SQ_BEGIN_END:
+				_localctx = new MultiLineSQStrContext(_localctx);
 				enterOuterAlt(_localctx, 2);
 				{
 				setState(2399);
@@ -13949,6 +14053,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case MULTI_LINE_STRING_SQ_BEGIN_MID:
+				_localctx = new MultiLineSQMidStrContext(_localctx);
 				enterOuterAlt(_localctx, 3);
 				{
 				setState(2400);
@@ -13976,6 +14081,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case MULTI_LINE_STRING_DQ_BEGIN_END:
+				_localctx = new MultiLineDQStrContext(_localctx);
 				enterOuterAlt(_localctx, 4);
 				{
 				setState(2411);
@@ -13983,6 +14089,7 @@ public class DartParser extends Parser {
 				}
 				break;
 			case MULTI_LINE_STRING_DQ_BEGIN_MID:
+				_localctx = new MultiLineDQMidStrContext(_localctx);
 				enterOuterAlt(_localctx, 5);
 				{
 				setState(2412);

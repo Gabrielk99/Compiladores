@@ -439,16 +439,16 @@ expressionList
     :    expression (',' expression)*
     ;
 primary
-    :    thisExpression
-    |    SUPER unconditionalAssignableSelector
-    |    constObjectExpression
-    |    newExpression
-    |    constructorInvocation
-    |    functionPrimary
-    |    '(' expression ')'
-    |    literal
-    |    identifier
-    |    constructorTearoff
+    :    thisExpression #primThisExpression
+    |    SUPER unconditionalAssignableSelector #primUnconditionalAssignable
+    |    constObjectExpression #primConstObjectExpression
+    |    newExpression  #primNewExpression
+    |    constructorInvocation #primConstructorInvocation
+    |    functionPrimary #primFunctionPrimary
+    |    '(' expression ')' #primExpression
+    |    literal #primLiteral
+    |    identifier  #primIdentifier
+    |    constructorTearoff #primConstructorTearoff
     ;
 constructorInvocation
     :    typeName typeArguments '.' NEW arguments
@@ -763,7 +763,7 @@ qualifiedName
     ;
 typeIdentifier
     :    IDENTIFIER        #typeId
-    |    DYNAMIC       #dnmc // Built-in identifier that can be used as a type. (declaracaoDeVariavel)
+    |    DYNAMIC       #dnmc // Built-in identifier that can be used as a type. 
     |    ASYNC         #asCtype // Not a built-in identifier.
     |    HIDE          #hDtype // Not a built-in identifier.
     |    OF            #ofType // Not a built-in identifier.

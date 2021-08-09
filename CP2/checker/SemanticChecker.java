@@ -4,19 +4,25 @@ import typing.Type.*;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import parser.Dart;
+import parser.DartBaseVisitor;
 import parser.Dart.NumValContext;
-import parser Dart.SingleLineRawStrContext;
-import parser Dart.SingleLineSQStrContext;
-import parser Dart.SingleLineDQStrContext;
-import parser Dart.MultiLineRawStrContext;
-import parser Dart.MultiLineSQStrContext;
-import parser Dart.MultiLineDQStrContext;
+import parser.Dart.SingleLineRawStrContext;
+import parser.Dart.SingleLineSQStrContext;
+import parser.Dart.SingleLineDQStrContext;
+import parser.Dart.MultiLineRawStrContext;
+import parser.Dart.MultiLineSQStrContext;
+import parser.Dart.MultiLineDQStrContext;
 import parser.Dart.TrueValContext;
 import parser.Dart.FalseValContext;
 import parser.Dart.TypeIdContext;
 import parser.Dart.VarNameContext;
 import parser.Dart.TopLevelVarDeclContext;
+import parser.Dart.DeclaredIdentifierContext;
 
+import tables.StrTable;
+import tables.VarTable;
+import tables.FuncTable;
 import tables.Key;
 
 import ast.AST;
@@ -29,6 +35,23 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
     Type lastType;
     Token lastVar;
+
+    // Checa se o uso da variável está correto
+    AST checkVar(Token token){
+        String name = token.getText();
+        int line = token.getLine();
+        int escopo = 0;
+
+        Key k = new Key(name,escopo);
+
+        if(!vt.lookupVar(name,escopo)){
+            System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
+    		
+    		System.exit(1);
+            return null;
+        }
+        return null;
+    }
 
     AST newVar(Token token) {
         String lastVarName = token.getText();
@@ -80,7 +103,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         default:
             lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
     }//correto pelo meu ver
-
+    
+    // ------------------ Declaracao no topLVL -------------------
     @Override
     public AST visitTopLevelVarDecl(TopLevelVarDeclContext ctx) {
         visit(ctx.varOrType());
@@ -93,6 +117,36 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if (ctx.initializedIdentifier() != null)
             visit(ctx.initializedIdentifier());
     }
+    // -------------------------- Declaracao local ----------------
+    @Override
+    public AST visitDeclaredIdentifier (DeclaredIdentifierContext ctx){
+        visit(ctx.finalConstVarOrType());
+        visit(ctx.identifier());
+
+        newVar(lastVar);
+
+        return null;
+    }
+    @Override
+    public AST visitInitializedIdentifier(InitializedIdentifierContext ctx){
+        visit(ctx.identifier());
+        newVar(lastVar);
+
+        if(ctx.expression() != null){visit(ctx.expression());}
+        return null;
+    }
+    // ------------------- Uso de variáveis ----------
+    // todas variáveis usadas aciona a chamada --> primary : identifier #primIdentifier
+    public AST visitPrimIdentifier(PrimIdentifier ctx){
+        visit(ctx.identifier());
+
+        checkVar(lastVar); //Verifica se a variável foi declarada
+
+        return null;
+    }
+
+
+
 
     // ------------------ Literais ------------------
     @Override
