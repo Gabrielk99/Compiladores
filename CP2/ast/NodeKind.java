@@ -24,7 +24,7 @@ Conversão de tipo - ok
 
 // ----------------------------------------------------------------------------------- \\
 
-public enum NodeKing {
+public enum NodeKind {
 
     ASSIGN_NODE {
         public String toString() {return "=";}

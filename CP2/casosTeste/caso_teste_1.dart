@@ -3,10 +3,19 @@
 
 bool mikaella=false;
 
-void main(){
+int main(){
 
     bool yes = true;
     inter x = 5;
     int y = 3;
 
+    if(yes){
+        print("Carambolas, sabia que x + y é = ${x+y}?");
+    }
+    else {
+        print("nada vai rolar");
+    }
+
+
+return 0;
 }

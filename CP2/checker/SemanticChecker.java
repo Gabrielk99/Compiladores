@@ -4,21 +4,21 @@ import typing.Type.*;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import parser.Dart;
+import parser.DartParser;
 import parser.DartBaseVisitor;
-import parser.Dart.NumValContext;
-import parser.Dart.SingleLineRawStrContext;
-import parser.Dart.SingleLineSQStrContext;
-import parser.Dart.SingleLineDQStrContext;
-import parser.Dart.MultiLineRawStrContext;
-import parser.Dart.MultiLineSQStrContext;
-import parser.Dart.MultiLineDQStrContext;
-import parser.Dart.TrueValContext;
-import parser.Dart.FalseValContext;
-import parser.Dart.TypeIdContext;
-import parser.Dart.VarNameContext;
-import parser.Dart.TopLevelVarDeclContext;
-import parser.Dart.DeclaredIdentifierContext;
+import parser.DartParser.NumValContext;
+import parser.DartParser.SingleLineRawStrContext;
+import parser.DartParser.SingleLineSQStrContext;
+import parser.DartParser.SingleLineDQStrContext;
+import parser.DartParser.MultiLineRawStrContext;
+import parser.DartParser.MultiLineSQStrContext;
+import parser.DartParser.MultiLineDQStrContext;
+import parser.DartParser.TrueValContext;
+import parser.DartParser.FalseValContext;
+import parser.DartParser.TypeIdContext;
+import parser.DartParser.VarNameContext;
+import parser.DartParser.TopLevelVarDeclContext;
+import parser.DartParser.DeclaredIdentifierContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -36,6 +36,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     Type lastType;
     Token lastVar;
 
+    private boolean passed= true;
+
     // Checa se o uso da variável está correto
     AST checkVar(Token token){
         String name = token.getText();
@@ -47,8 +49,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if(!vt.lookupVar(name,escopo)){
             System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
     		
-    		System.exit(1);
-            return null;
+            passed = false;
         }
         return null;
     }
@@ -64,7 +65,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         	System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n", 
             line, lastVarName, vt.getLine(k));
 
-        	System.exit(1);
+            passed=false;
             return null;
         }
         vt.addVar(lastVarName, line, lastType, escopo);
@@ -85,23 +86,25 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitTypeId(TypeIdContext ctx){
         String typeCtx = ctx.getText();
 
-        switch(typeCtx):
-        case "int":
-            lastType = INT_TYPE;
-        break;
-        case "double":
-            lastType = DOUBLE_TYPE;
-        break;
-        case "String":
-            lastType = STR_TYPE;
-        break;
-        case "boolean":
-            lastType = BOOL_TYPE;
-        break;
-        case "void":
-            lastType = VOID_TYPE;
-        default:
-            lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
+        switch(typeCtx){
+            case "int":
+                lastType = INT_TYPE;
+            break;
+            case "double":
+                lastType = DOUBLE_TYPE;
+            break;
+            case "String":
+                lastType = STR_TYPE;
+            break;
+            case "boolean":
+                lastType = BOOL_TYPE;
+            break;
+            case "void":
+                lastType = VOID_TYPE;
+            default:
+                lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
+                passed = false;
+        }
     }//correto pelo meu ver
     
     // ------------------ Declaracao no topLVL -------------------
@@ -152,10 +155,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitNumVal(NumValContext ctx) {
         String value = ctx.getText();
-        if(value.matches("(.*).(.*)"))
+        if(value.matches("(.*).(.*)")){
             double num = Double.parseDouble(value);
-        else
+        }
+        else{
             int num = Integer.parseInt(value);
+        }
         return null;
     }
 
@@ -209,4 +214,19 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         // Só serve pra adicionar na ast o nó com intData = 0
         return null;
     }
+
+ void printTables() {
+        System.out.print("\n\n");
+        System.out.print(st);
+        System.out.print("\n\n");
+    	System.out.print(vt);
+    	System.out.print("\n\n");
+        System.out.print(ft);
+        System.out.print("\n\n");
+    }
+// Retorna true se os testes passaram.
+boolean hasPassed() {
+    return passed;
+}
+
 }

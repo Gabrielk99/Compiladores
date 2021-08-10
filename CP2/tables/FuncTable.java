@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Array;
 import typing.Type;
 
-public final class FuncTable(){
+public final class FuncTable{
     private Hashtable<Key,Entry> table = new Hashtable<Key,Entry> ();
 
     public boolean lookupVar(String s, int id){
