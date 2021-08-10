@@ -50,4 +50,4 @@ runall:
 	done;
 
 clean:
-	@rm -rf $(GEN_PATH) $(BIN_PATH)
+	@rm -rf $(GEN_PATH) $(BIN_PATH) .antlr

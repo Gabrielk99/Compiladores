@@ -51,10 +51,12 @@
 grammar Dart;
 
 @parser::header{
+package parser;
 import java.util.Stack;
 }
 
 @lexer::header{
+package parser;
 import java.util.Stack;
 }
 
