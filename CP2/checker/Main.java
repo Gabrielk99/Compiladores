@@ -11,7 +11,7 @@ import parser.DartLexer;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-
+    
     CharStream input = CharStreams.fromFileName(args[0]);
 
     DartLexer lexer = new DartLexer(input);
@@ -32,7 +32,7 @@ public class Main {
     checker.visit(tree);
 
     if(checker.hasPassed ()){
-        System.out.println("PARSER SUCCESSFULL!");;
+        System.out.println("PARSER SUCCESSFULL!");
         checker.printTables();
     }
 

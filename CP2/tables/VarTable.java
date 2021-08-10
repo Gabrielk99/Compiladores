@@ -45,7 +45,7 @@ public final class VarTable{
 		for (Map.Entry mapElement : table.entrySet()) {
             Key key = (Key)mapElement.getKey();
 
-			f.format("Entry %d -- name: %s, line: %d, type: %s, id_escopo: %d\n",
+			f.format("Entry %s -- name: %s, line: %d, type: %s, id_escopo: %d\n", key,
 	                 getName(key), getLine(key), getType(key).toString(), 
                      getIdEscopo(key));
 		}

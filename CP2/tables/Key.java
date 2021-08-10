@@ -23,4 +23,9 @@ public class Key{
 		return this.name.equals(k.getName()) && this.id == k.getId();
 	}
 
+	@Override
+	public String toString(){
+		return "(" + name + ", " + id + ")";
+	}
+
 }

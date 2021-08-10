@@ -71,10 +71,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         Key k = new Key(lastVarName, escopo); // Vai ser usada pra ast tambem
 
-        if (!vt.lookupVar(lastVarName, escopo)) {
+        if (vt.lookupVar(lastVarName, escopo)) {
         	System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n", 
             line, lastVarName, vt.getLine(k));
 
+            System.out.println("oi");
             passed=false;
             return null;
         }
@@ -106,7 +107,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             case "String":
                 lastType = STR_TYPE;
             break;
-            case "boolean":
+            case "bool":
                 lastType = BOOL_TYPE;
             break;
             case "void":

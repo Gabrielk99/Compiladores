@@ -38,7 +38,7 @@ javac:
 	mkdir $(BIN_PATH)
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) */*.java
 
-FILE=CP2/casosTeste/caso_teste_1.dart
+FILE=casosTeste/teste.dart
 
 run:
 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $(FILE)
