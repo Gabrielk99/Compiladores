@@ -55,7 +55,7 @@ public class AST {
 
 	// Cria um nó e pendura todos os filhos passados como argumento.
 	public static AST newSubtree(NodeKind kind, Type type, Key key, AST... children) {
-		AST node = new AST(kind, 0, type);
+		AST node = new AST(kind, 0, type, key);
 	    for (AST child: children) {
 	    	node.addChild(child);
 	    }
@@ -78,18 +78,18 @@ public class AST {
 	    }
 	    if (this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE ||
             this.kind == NodeKind.FUNC_DECL_NODE || this.kind == NodeKind.FUNC_USE_NODE) {
-	    	System.err.printf("%s@", vt.getName(this.intData));
+	    	System.err.printf("%s@", vt.getName(this.key));
 	    } else {
 	    	System.err.printf("%s", this.kind.toString());
 	    }
 
 	    if (NodeKind.hasData(this.kind)) {
-	        if (this.kind == NodeKind.REAL_VAL_NODE) {
-	        	System.err.printf("%.2f", this.floatData);
+	        if (this.kind == NodeKind.DOUBLE_VAL_NODE) {
+	        	System.err.printf("%.2f", this.doubleData);
 	        } else if (this.kind == NodeKind.STR_VAL_NODE) {
 	        	System.err.printf("@%d", this.intData);
 	        } else  if(this.kind == NodeKind.BOOL_VAL_NODE){
-                if(this.intData) System.err.printf("true");
+                if(this.intData == 1) System.err.printf("true");
                 else System.err.printf("false");
             }else {
 	        	System.err.printf("%d", this.intData);

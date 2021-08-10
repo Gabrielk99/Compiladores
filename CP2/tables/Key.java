@@ -4,7 +4,7 @@ public class Key{
 	private String name;
 	private int id;
 
-	Key(String name, int id){
+	public Key(String name, int id){
 		this.name = name;
 		this.id = id;
 	}

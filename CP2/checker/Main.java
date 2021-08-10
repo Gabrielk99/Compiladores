@@ -1,7 +1,6 @@
-package chacker;
+package checker;
 
 import java.io.IOException;
-
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;

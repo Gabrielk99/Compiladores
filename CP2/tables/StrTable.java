@@ -24,7 +24,7 @@ public final class StrTable {
         Formatter f = new Formatter(sb);
         f.format("Strings table");
         for (Map.Entry mapElement : table.entrySet()){
-            String key = mapElement.getKey();
+            Key key = (Key)mapElement.getKey();
 
             f.format("Entry %s -- Key and Value\n", key);
         }

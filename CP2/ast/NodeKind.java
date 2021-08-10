@@ -142,4 +142,18 @@ public enum NodeKind {
             return "func_use";
         }
 	};
+
+    public static boolean hasData(NodeKind kind) {
+		switch(kind) {
+	        case BOOL_VAL_NODE:
+	        case INT_VAL_NODE:
+	        case DOUBLE_VAL_NODE:
+	        case STR_VAL_NODE:
+	        case VAR_DECL_NODE:
+	        case VAR_USE_NODE:
+	            return true;
+	        default:
+	            return false;
+		}
+	}
 }

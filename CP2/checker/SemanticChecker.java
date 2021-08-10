@@ -1,5 +1,13 @@
+package checker;
+
 import ast.NodeKind.*;
-import typing.Type.*;
+import typing.Type;
+import static typing.Type.INT_TYPE;
+import static typing.Type.DOUBLE_TYPE;
+import static typing.Type.STR_TYPE;
+import static typing.Type.BOOL_TYPE;
+import static typing.Type.VOID_TYPE;
+import static typing.Type.NO_TYPE;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -19,6 +27,8 @@ import parser.DartParser.TypeIdContext;
 import parser.DartParser.VarNameContext;
 import parser.DartParser.TopLevelVarDeclContext;
 import parser.DartParser.DeclaredIdentifierContext;
+import parser.DartParser.InitializedIdentifierContext;
+import parser.DartParser.PrimIdentifierContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -78,7 +88,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
     @Override
     public AST visitVarName (VarNameContext ctx) {
-        lastVar = ctx.getSymbol();
+        lastVar = ctx.IDENTIFIER().getSymbol();
         return null;
     }
 
@@ -88,7 +98,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         switch(typeCtx){
             case "int":
-                lastType = INT_TYPE;
+                lastType = Type.INT_TYPE;
             break;
             case "double":
                 lastType = DOUBLE_TYPE;
@@ -105,6 +115,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
                 passed = false;
         }
+
+        return null;
     }//correto pelo meu ver
     
     // ------------------ Declaracao no topLVL -------------------
@@ -117,8 +129,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         if (ctx.expression() != null)
             visit(ctx.expression());
-        if (ctx.initializedIdentifier() != null)
-            visit(ctx.initializedIdentifier());
+        
+        int i = 0;
+        while(ctx.initializedIdentifier(i) != null)
+            visit(ctx.initializedIdentifier(i++));
+        
+        return null;
     }
     // -------------------------- Declaracao local ----------------
     @Override
@@ -140,7 +156,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     }
     // ------------------- Uso de variáveis ----------
     // todas variáveis usadas aciona a chamada --> primary : identifier #primIdentifier
-    public AST visitPrimIdentifier(PrimIdentifier ctx){
+    public AST visitPrimIdentifier(PrimIdentifierContext ctx){
         visit(ctx.identifier());
 
         checkVar(lastVar); //Verifica se a variável foi declarada

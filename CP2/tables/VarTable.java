@@ -43,7 +43,7 @@ public final class VarTable{
 		Formatter f = new Formatter(sb);
 		f.format("Variables table:\n");
 		for (Map.Entry mapElement : table.entrySet()) {
-            String key = (String)mapElement.getKey();
+            Key key = (Key)mapElement.getKey();
 
 			f.format("Entry %d -- name: %s, line: %d, type: %s, id_escopo: %d\n",
 	                 getName(key), getLine(key), getType(key).toString(), 
