@@ -22,7 +22,7 @@ public final class StrTable {
     public String toString(){
         StringBuilder sb = new StringBuilder();
         Formatter f = new Formatter(sb);
-        f.format("Strings table");
+        f.format("Strings table:\n");
         for (Map.Entry mapElement : table.entrySet()){
             
             Key key = (Key)mapElement.getKey();
