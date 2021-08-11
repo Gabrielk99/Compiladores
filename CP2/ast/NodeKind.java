@@ -41,9 +41,6 @@ public enum NodeKind {
     ASSIGN_MINUS_NODE{
         public String toString() {return "-=";}
     },
-    FUNCTION_NODE{
-        public String toString() {return "function";}
-    },
     IF_NODE{
         public String toString() {return "if";}
     },
@@ -151,6 +148,8 @@ public enum NodeKind {
 	        case STR_VAL_NODE:
 	        case VAR_DECL_NODE:
 	        case VAR_USE_NODE:
+            case FUNC_DECL_NODE:
+            case FUNC_USE_NODE:
 	            return true;
 	        default:
 	            return false;
