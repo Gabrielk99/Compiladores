@@ -1,11 +1,7 @@
 
 void main() {
-	String oneLine = "Ola ninos";
-	
-	String multiline = ''' Varias linhas
-agora''';
-
-	print("chola");
-	print('cola');
-	print('b ${3+5}');
+	int x = 4;
+	int y=3;
+	y+=x;
+	List <int> b = [1,2,3];
 }

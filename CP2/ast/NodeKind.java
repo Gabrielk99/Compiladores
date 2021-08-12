@@ -15,6 +15,7 @@ Função - ok
 If - ok
 Operadores Aritméticos - ok
 Operadores Logicos - ok
+Operadores comparativos - ok
 Tipos valores -ok
 Bloco - ok
 For - ok

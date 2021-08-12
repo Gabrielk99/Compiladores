@@ -23,19 +23,21 @@ public enum Type {
         public String toString() {return "void";}
     },
     LIST_TYPE{
-        private String innerType;
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            Formatter f = new Formatter();
-
-            f.format("%s list", innerType);
-            f.close();
-            return sb.toString();
+            return getInner()+" list";
         }
     },
     NO_TYPE{ // usado para indicar erros de tipos.
         public String toString() {return "no_type";}
-    };
+    };        
+    private Type innerType;
+
+    public void defineInner(Type inner){
+        this.innerType = inner;
+    }
+    public Type getInner(){
+        return innerType;
+    }
 
     // Tabela de unificação de tipos primitivos para "+"
     private static Type plus[][] = {

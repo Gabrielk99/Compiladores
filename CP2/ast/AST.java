@@ -30,15 +30,18 @@ public class AST {
 	}
 
 	// Cria o nó com um dado inteiro.
-	public AST(NodeKind kind, int intData, Type type, Key key) {
-		this(kind, intData, 0.0f, type, key);
+	public AST(NodeKind kind, int intData, Type type) {
+		this(kind, intData, 0.0f, type, null);
 	}
 
 	// Cria o nó com um dado double.
-	public AST(NodeKind kind, double doubleData, Type type, Key key) {
-		this(kind, 0, doubleData, type, key);
+	public AST(NodeKind kind, double doubleData, Type type) {
+		this(kind, 0, doubleData, type, null);
 	}
-
+	// Cria o nó com um dado Key
+	public AST(NodeKind kind, Key key, Type type){
+		this(kind, 0, 0.0f, type,key);
+	}
 	// Adiciona um novo filho ao nó.
 	public void addChild(AST child) {
 		// A lista cresce automaticamente, então nunca vai dar erro ao adicionar.
@@ -54,8 +57,8 @@ public class AST {
 	}
 
 	// Cria um nó e pendura todos os filhos passados como argumento.
-	public static AST newSubtree(NodeKind kind, Type type, Key key, AST... children) {
-		AST node = new AST(kind, 0, type, key);
+	public static AST newSubtree(NodeKind kind, Type type, AST... children) {
+		AST node = new AST(kind, 0, type);
 	    for (AST child: children) {
 	    	node.addChild(child);
 	    }

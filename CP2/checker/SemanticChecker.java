@@ -1,13 +1,18 @@
 package checker;
 
 import ast.NodeKind.*;
+import static ast.NodeKind.*;
 import typing.Type;
+import typing.Conv;
+import typing.Conv.Unif;
 import static typing.Type.INT_TYPE;
 import static typing.Type.DOUBLE_TYPE;
 import static typing.Type.STR_TYPE;
 import static typing.Type.BOOL_TYPE;
 import static typing.Type.VOID_TYPE;
 import static typing.Type.NO_TYPE;
+import static typing.Type.LIST_TYPE;
+import static typing.Conv.I2D;
 
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -43,46 +48,60 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     private VarTable vt = new VarTable();   // Tabela de variáveis.
     private FuncTable ft = new FuncTable(); // Tabela de funcoes.
 
-    Type lastType;
-    Token lastVar;
+    Type lastType; //Variável global com o último tipo declarado
+    Token lastVar; //Variável global com o token da ultima variável declarada
 
-    private boolean passed= true;
+    AST root; //Nó raiz da AST
+
+    int id_escopo_atual = 0;
+    int id_escopo_counter = 0;
+
 
     // Checa se o uso da variável está correto
     AST checkVar(Token token){
         String name = token.getText();
         int line = token.getLine();
-        int escopo = 0;
 
-        Key k = new Key(name,escopo);
+        Key k = new Key(name,id_escopo_atual);
 
-        if(!vt.lookupVar(name,escopo)){
+        if(!vt.lookupVar(name,id_escopo_atual)){
             System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
     		
-            passed = false;
+            System.exit(1);//Aborta o compilador caso haja erro de semantica
+
+            return null; //Nuva vai executar
         }
-        return null;
+        return null;//new AST(VAR_USE_NODE,k,vt.getType(k));
     }
 
+    //Adiciona uma nova variável na tabela e retorna um nó de VAR_DECL
     AST newVar(Token token) {
         String lastVarName = token.getText();
     	int line = token.getLine();
-        int escopo = 0; // Mudar aqui
 
-        Key k = new Key(lastVarName, escopo); // Vai ser usada pra ast tambem
+        Key k = new Key(lastVarName, id_escopo_atual); // Vai ser usada pra ast tambem
 
-        if (vt.lookupVar(lastVarName, escopo)) {
+        if (vt.lookupVar(lastVarName, id_escopo_atual)) {
         	System.err.printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n", 
             line, lastVarName, vt.getLine(k));
 
-            System.out.println("oi");
-            passed=false;
+            System.exit(1);
             return null;
         }
-        vt.addVar(lastVarName, line, lastType, escopo);
-        return null;
+        //Erro caso declara variável com um tipo não aceito
+        if(lastType == NO_TYPE){
+            System.out.printf("SEMANTIC ERROR (%d): incompatible type for var declaration '%s'\n",line,lastVarName);
+            System.exit(1);
+            return null;
+        }
+        vt.addVar(lastVarName, line, lastType, id_escopo_atual);
+        return null;//new AST(VAR_DECL_NODE,k,vt.getType(k));
     }
-
+    private static void typeError (int line, String op, Type t1, Type t2){
+        System.out.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
+    			line, op, t1.toString(), t2.toString());
+    	System.exit(1);
+    }
     /******************************************************
      -------------------- Visitadores ---------------------
     *******************************************************/
@@ -99,27 +118,70 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         switch(typeCtx){
             case "int":
-                lastType = Type.INT_TYPE;
+                if(lastType == LIST_TYPE){
+                    lastType.defineInner(INT_TYPE);
+                }
+                else
+                    lastType = INT_TYPE;
             break;
             case "double":
-                lastType = DOUBLE_TYPE;
+                if(lastType==LIST_TYPE)
+                    lastType.defineInner(DOUBLE_TYPE);
+                else
+                    lastType = DOUBLE_TYPE;
             break;
             case "String":
-                lastType = STR_TYPE;
+                if(lastType == LIST_TYPE)
+                    lastType.defineInner(STR_TYPE);
+                else
+                    lastType = STR_TYPE;
             break;
             case "bool":
-                lastType = BOOL_TYPE;
+                if(lastType == LIST_TYPE)
+                    lastType.defineInner(BOOL_TYPE);
+                else
+                    lastType = BOOL_TYPE;
             break;
             case "void":
                 lastType = VOID_TYPE;
+            break;
+            case "List":
+                lastType = LIST_TYPE;
+            break;
             default:
-                lastType = NO_TYPE; // Lançar um erro? (provavel, você esqueceu do void) eita é verdade hihi
-                passed = false;
+                lastType = NO_TYPE; 
         }
 
         return null;
-    }//correto pelo meu ver
-    
+    }
+    private static AST checkAssign(int line, AST l, AST r){
+        Type lt = l.type;
+        Type rt = r.type;
+
+        if(lt == BOOL_TYPE && rt!= BOOL_TYPE) typeError(line,"=",lt,rt);
+        if(lt == STR_TYPE && rt!= STR_TYPE) typeError(line,"=",lt,rt);
+        if(lt == INT_TYPE && rt!= INT_TYPE) typeError(line,"=",lt,rt);
+        if(lt == LIST_TYPE){
+            if(rt == LIST_TYPE){ 
+                if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE ) typeError(line,"=",lt,rt);
+                if(lt.getInner() == INT_TYPE && rt.getInner()!=INT_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE) typeError(line,"=",lt,rt);
+            }
+            else if(rt != LIST_TYPE){
+                typeError(line,"=",lt,rt);
+            }
+        }
+        if(lt == DOUBLE_TYPE){
+            if(rt == INT_TYPE){
+                r = Conv.createConvNode(I2D,r);
+            }
+            else if(rt != DOUBLE_TYPE){
+                typeError(line,"=",lt,rt);
+            }
+        }
+        return null;//AST.newSubtree(ASSIGN_NODE,NO_TYPE,l,r);
+    }
     // ------------------ Declaracao no topLVL -------------------
     @Override
     public AST visitTopLevelVarDecl(TopLevelVarDeclContext ctx) {
@@ -241,9 +303,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         System.out.print(ft);
         System.out.print("\n\n");
     }
-// Retorna true se os testes passaram.
-boolean hasPassed() {
-    return passed;
+void printAST(){
+    AST.printDot(root,vt);
 }
-
 }
