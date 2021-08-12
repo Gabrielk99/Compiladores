@@ -26,7 +26,12 @@ Conversão de tipo - ok
 // ----------------------------------------------------------------------------------- \\
 
 public enum NodeKind {
-
+    GLOBAL_NODE{
+        public String toString() {return "global";}
+    },
+    INSTANCE_VAR_NODE{
+        public String toString() {return "instance var";}
+    },
     ASSIGN_NODE {
         public String toString() {return "=";}
     },

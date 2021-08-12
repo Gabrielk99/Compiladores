@@ -31,6 +31,6 @@ public class Main {
 
     checker.visit(tree);
     checker.printTables();
-    //checker.printAST();
+    checker.printAST();
     }
 }

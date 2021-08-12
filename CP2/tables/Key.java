@@ -22,7 +22,12 @@ public class Key{
         Key k = (Key) obj;
 		return this.name.equals(k.getName()) && this.id == k.getId();
 	}
-
+	@Override
+	public int hashCode(){
+		int hash = this.name.hashCode();
+		hash = hash*31+this.id;
+		return hash;
+	}
 	@Override
 	public String toString(){
 		return "(" + name + ", " + id + ")";

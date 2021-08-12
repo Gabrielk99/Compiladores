@@ -5,18 +5,18 @@ import java.util.Hashtable;
 import java.util.Formatter;
 
 public final class StrTable {
-    private Hashtable <String, String> table = new Hashtable <String, String> () ;
+    private Hashtable <Integer, String> table = new Hashtable <Integer, String> () ;
 
-    public void addStr(String s){
+    public void addStr(String s, int code){
 
         if(!this.table.containsKey(s)){
-            this.table.put(s,s);
+            this.table.put(code,s);
         }
 
 
     }
-    public boolean containString(String s){
-        return this.table.containsKey(s);
+    public boolean containString(int  code){
+        return this.table.containsKey(code);
     }
 
     public String toString(){
@@ -27,7 +27,7 @@ public final class StrTable {
             
             Key key = (Key)mapElement.getKey();
 
-            f.format("Entry %s -- %s\n", key, table.get(key));
+            f.format("Entry %d -- %s\n", key, table.get(key));
         }
 
         f.close();

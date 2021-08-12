@@ -34,13 +34,18 @@ import parser.DartParser.TopLevelVarDeclContext;
 import parser.DartParser.DeclaredIdentifierContext;
 import parser.DartParser.InitializedIdentifierContext;
 import parser.DartParser.PrimIdentifierContext;
+import parser.DartParser.LibraryDefinitionContext;
+import parser.DartParser.InitializedVariableDeclarationContext;
 
 import tables.StrTable;
 import tables.VarTable;
 import tables.FuncTable;
 import tables.Key;
+import tables.VarTable.*;
 
+import ast.AST.*;
 import ast.AST;
+
 
 public class SemanticChecker extends DartBaseVisitor<AST> {
 
@@ -69,9 +74,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     		
             System.exit(1);//Aborta o compilador caso haja erro de semantica
 
-            return null; //Nuva vai executar
+            return null; //Nunca vai executar
         }
-        return null;//new AST(VAR_USE_NODE,k,vt.getType(k));
+        return new AST(VAR_USE_NODE,k,vt.getType(k));
     }
 
     //Adiciona uma nova variável na tabela e retorna um nó de VAR_DECL
@@ -94,8 +99,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             System.exit(1);
             return null;
         }
-        vt.addVar(lastVarName, line, lastType, id_escopo_atual);
-        return null;//new AST(VAR_DECL_NODE,k,vt.getType(k));
+        vt.addVar(lastVarName, line, lastType, id_escopo_atual); 
+        AST node = new AST (VAR_DECL_NODE,k,vt.getType(k));
+        return node;
     }
     private static void typeError (int line, String op, Type t1, Type t2){
         System.out.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
@@ -106,12 +112,33 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
      -------------------- Visitadores ---------------------
     *******************************************************/
 
+    //Visita a regra principal que deriva as outras partes do programa
+    @Override
+    public AST visitLibraryDefinition(LibraryDefinitionContext ctx){
+        if(ctx.libraryName()!=null) visit(ctx.libraryName()); // Isso nunca vai rolar, já que não usamos bibliotecas, mas...
+        int i = 0;
+        while(ctx.importOrExport(i)!=null) visit(ctx.importOrExport(i++)); //Também não vai rolar
+        i=0;
+        while (ctx.partDirective(i)!=null) visit(ctx.partDirective(i++)); //Também não vai rolar
+        i=0;
+        this.root = AST.newSubtree(GLOBAL_NODE,NO_TYPE);
+        while(ctx.metadata(i) != null || ctx.topLevelDefinition(i)!=null){
+            visit(ctx.metadata(i)); //Desnecessário para a AST
+            AST node = visit(ctx.topLevelDefinition(i++)); //Os nó local
+            this.root.addChild(node);
+        }
+        return this.root;
+    }
+
+
+    //Salva o nome da variável
     @Override
     public AST visitVarName (VarNameContext ctx) {
         lastVar = ctx.IDENTIFIER().getSymbol();
         return null;
     }
 
+    //Salva o tipo declarado
     @Override
     public AST visitTypeId(TypeIdContext ctx){
         String typeCtx = ctx.getText();
@@ -154,6 +181,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         return null;
     }
+    //Verifica se a operação = está correta
     private static AST checkAssign(int line, AST l, AST r){
         Type lt = l.type;
         Type rt = r.type;
@@ -183,48 +211,70 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         return null;//AST.newSubtree(ASSIGN_NODE,NO_TYPE,l,r);
     }
     // ------------------ Declaracao no topLVL -------------------
+   //Regra de declaração de variável global
+
     @Override
     public AST visitTopLevelVarDecl(TopLevelVarDeclContext ctx) {
         visit(ctx.varOrType());
         visit(ctx.identifier());
 
-        newVar(lastVar);
-
-        if (ctx.expression() != null)
-            visit(ctx.expression());
-        
+        AST node  = newVar(lastVar);
+        AST node2;
+        if (ctx.expression() != null){
+            node2 = visit(ctx.expression());
+            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+        }
         int i = 0;
         while(ctx.initializedIdentifier(i) != null)
             visit(ctx.initializedIdentifier(i++));
+        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
         
-        return null;
     }
     // -------------------------- Declaracao local ----------------
+    //Regra de declaração de varável local
     @Override
     public AST visitDeclaredIdentifier (DeclaredIdentifierContext ctx){
         visit(ctx.finalConstVarOrType());
         visit(ctx.identifier());
 
-        newVar(lastVar);
+        AST node = newVar(lastVar);
 
-        return null;
+        return node;
     }
+    @Override
+    public AST visitInitializedVariableDeclaration (InitializedVariableDeclarationContext ctx){
+        AST node = visit(ctx.declaredIdentifier());
+        AST node2;
+        if(ctx.expression()!=null){
+            node2 = visit(ctx.expression());
+            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+        }
+        int i = 0;
+        while(ctx.initializedIdentifier(i)!=null){
+            visit(ctx.initializedIdentifier(i++));
+        }
+        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
+    }
+    //Regra para salvar também int x, y, b, c, ....;
     @Override
     public AST visitInitializedIdentifier(InitializedIdentifierContext ctx){
         visit(ctx.identifier());
-        newVar(lastVar);
-
-        if(ctx.expression() != null){visit(ctx.expression());}
-        return null;
+        AST node = newVar(lastVar);
+        AST node2;
+        if(ctx.expression() != null){
+            node2 = visit(ctx.expression());
+            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+        }
+        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
     }
     // ------------------- Uso de variáveis ----------
     // todas variáveis usadas aciona a chamada --> primary : identifier #primIdentifier
     public AST visitPrimIdentifier(PrimIdentifierContext ctx){
         visit(ctx.identifier());
 
-        checkVar(lastVar); //Verifica se a variável foi declarada
+        AST node = checkVar(lastVar); //Verifica se a variável foi declarada
 
-        return null;
+        return node;
     }
 
 
@@ -234,64 +284,74 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitNumVal(NumValContext ctx) {
         String value = ctx.getText();
+        AST node;
         if(value.matches("(.*).(.*)")){
             double num = Double.parseDouble(value);
+            node = new AST(DOUBLE_VAL_NODE,num,DOUBLE_TYPE);
         }
         else{
             int num = Integer.parseInt(value);
+            node = new AST(INT_VAL_NODE,num,INT_TYPE); 
         }
-        return null;
+        
+        return node;
     }
 
     // String de linha unica
     @Override
     public AST visitSingleLineRawStr(SingleLineRawStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
     @Override
     public AST visitSingleLineSQStr(SingleLineSQStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
     @Override
     public AST visitSingleLineDQStr(SingleLineDQStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
     //String de multiplas linhas
     @Override
     public AST visitMultiLineRawStr(MultiLineRawStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
     @Override
     public AST visitMultiLineSQStr(MultiLineSQStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+       AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
     @Override
     public AST visitMultiLineDQStr(MultiLineDQStrContext ctx) {
         String strData = ctx.getText();
-        st.addStr(strData);
-        return null;
+        st.addStr(strData,strData.hashCode());
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        return node;
     }
 
     //Booleanos
     @Override
     public AST visitTrueVal(TrueValContext ctx) {
         // Só serve pra adicionar na ast o nó com intData = 1
-        return null;
+        return new AST(BOOL_VAL_NODE,1,BOOL_TYPE);
     }
     @Override
     public AST visitFalseVal(FalseValContext ctx) {
         // Só serve pra adicionar na ast o nó com intData = 0
-        return null;
+        return new AST(BOOL_VAL_NODE,0,BOOL_TYPE);
     }
 
  void printTables() {
