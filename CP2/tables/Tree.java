@@ -14,11 +14,11 @@ public class Tree{
         return child;
     }
 
-    public getIdEscopo(){
+    public int getIdEscopo(){
         return id_escopo;
     }
 
-    public getPai(){
+    public Tree getPai(){
         return pai;
     }
 }

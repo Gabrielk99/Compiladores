@@ -144,6 +144,11 @@ public enum NodeKind {
 		public String toString() {
             return "func_use";
         }
+    },
+    LIST_VAL_NODE{
+        public String toString(){
+            return "list val";
+        }
 	};
 
     public static boolean hasData(NodeKind kind) {

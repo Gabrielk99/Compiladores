@@ -94,7 +94,10 @@ public class AST {
 	        } else  if(this.kind == NodeKind.BOOL_VAL_NODE){
                 if(this.intData == 1) System.err.printf("true");
                 else System.err.printf("false");
-            }else {
+            } else if(this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE){
+				System.err.printf("%s", this.key);
+			}
+			else {
 	        	System.err.printf("%d", this.intData);
 	        }
 	    }
