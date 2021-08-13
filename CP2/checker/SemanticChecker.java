@@ -36,12 +36,14 @@ import parser.DartParser.InitializedIdentifierContext;
 import parser.DartParser.PrimIdentifierContext;
 import parser.DartParser.LibraryDefinitionContext;
 import parser.DartParser.InitializedVariableDeclarationContext;
+import parser DartParser.IfStatementContext;
 
 import tables.StrTable;
 import tables.VarTable;
 import tables.FuncTable;
 import tables.Key;
 import tables.VarTable.*;
+import tables.Tree;
 
 import ast.AST.*;
 import ast.AST;
@@ -61,6 +63,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     int id_escopo_atual = 0;
     int id_escopo_counter = 0;
 
+    Tree scopeTree; // Árvore de escopo
 
     // Checa se o uso da variável está correto
     AST checkVar(Token token){
@@ -108,6 +111,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     			line, op, t1.toString(), t2.toString());
     	System.exit(1);
     }
+
+    private static void checkBoolExpr(int lineNo, String cmd, Type t) {
+        if (t != BOOL_TYPE) {
+            System.out.printf("SEMANTIC ERROR (%d): conditional expression in '%s' is '%s' instead of '%s'.\n",
+                    lineNo, cmd, t.toString(), BOOL_TYPE.toString());
+            System.exit(1);
+        }
+    }
     /******************************************************
      -------------------- Visitadores ---------------------
     *******************************************************/
@@ -123,6 +134,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         i=0;
         this.root = AST.newSubtree(GLOBAL_NODE,NO_TYPE);
         while(ctx.metadata(i) != null || ctx.topLevelDefinition(i)!=null){
+            scopeTree = new Tree(id_escopo_atual, null); // Cria nó raíz da arvore de escopos (escopo =0)
+
             visit(ctx.metadata(i)); //Desnecessário para a AST
             AST node = visit(ctx.topLevelDefinition(i++)); //Os nó local
             this.root.addChild(node);
@@ -278,7 +291,38 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     }
 
 
+    // ----------------- If else --------------------
+    @Override
+    public AST visitIfStatement(IfStatementContext ctx){
+        id_escopo_atual = ++id_escopo_counter; // Gera novo escopo: aumenta contador e atribui ao escopo atual
+        scopeTree = scopeTree.addChild(id_escopo_atual); // Adiciona um filho ao escopo atual e agora o escopo atual
+                                                        // é a referencia pro nó filho
 
+        // Analisa expressao booleana
+        AST exprNode = visit(ctx.expression());
+        checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", exprNode.type);
+
+        // O primeiro statement é o do then
+        AST thenNode = AST.newSubtree(BLOCK_NODE, NO_TYPE);
+        AST child = visit(ctx.statement(0));
+        thenNode.addChild(child);
+
+        //O segundo statement, se existir, é do else
+        if(ctx.ELSE() != null){
+            AST elseNode = AST.newSubtree(BLOCK_NODE, NO_TYPE);
+            AST child = visit(ctx.statement(1));
+            elseNode.addChild(child);
+
+            subTreeIFNode = AST.newSubtree(IF_NODE, NO_TYPE, exprNode, thenNode, elseNode);
+        }else
+            subTreeIFNode = AST.newSubtree(IF_NODE, NO_TYPE, exprNode, thenNode);
+
+
+        id_escopo_atual--; // Ao fim, sai desse escopo, logo decrementa o escopo atual
+        scopeTree = scopeTree.getPai(); // Nó da arvore de escopo volta ao nó do escopo anterior, que é o pai
+
+        return subTreeIFNode;
+    }
 
     // ------------------ Literais ------------------
     @Override
@@ -290,6 +334,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             node = new AST(DOUBLE_VAL_NODE,num,DOUBLE_TYPE);
         }
         else{
+            System.out.println("oi");
             int num = Integer.parseInt(value);
             node = new AST(INT_VAL_NODE,num,INT_TYPE); 
         }
