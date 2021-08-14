@@ -1,6 +1,7 @@
 package checker;
 
 import ast.NodeKind.*;
+import ast.NodeKind;
 import static ast.NodeKind.*;
 import typing.Type;
 import typing.Conv;
@@ -42,6 +43,9 @@ import parser.DartParser.LocalVariableDeclarationContext;
 import parser.DartParser.ElementsContext;
 import parser.DartParser.ListLiteralContext;
 import parser.DartParser.StatementsContext;
+import parser.DartParser.LogicalAndExpressionContext;
+import parser.DartParser.LogicalOrExpressionContext;
+import parser.DartParser.EqExpressionContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -346,15 +350,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         checkBoolExpr(ctx.IF().getSymbol().getLine(), "if", exprNode.type);
 
         // O primeiro statement é o do then
-        AST thenNode = AST.newSubtree(BLOCK_NODE, NO_TYPE);
-        AST child = visit(ctx.statement(0));
-        thenNode.addChild(child);
+        AST thenNode = visit(ctx.statement(0));
+
         AST subTreeIFNode;
         //O segundo statement, se existir, é do else
         if(ctx.ELSE() != null){
-            AST elseNode = AST.newSubtree(BLOCK_NODE, NO_TYPE);
-            AST child2 = visit(ctx.statement(1));
-            elseNode.addChild(child2);
+            AST elseNode = visit(ctx.statement(1));
 
             subTreeIFNode = AST.newSubtree(IF_NODE, NO_TYPE, exprNode, thenNode, elseNode);
         }else
@@ -363,7 +364,92 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         return subTreeIFNode;
     }
 
-    // ------------------ Literais ------------------
+    // ------------------- Operadores -----------------------
+
+    // Lógicos
+    @Override
+    public AST visitLogicalOrExpression(LogicalOrExpressionContext ctx){
+        if (ctx.logicalAndExpression(1) == null)     // quer dizer que nao tem "||"
+            return visit(ctx.logicalAndExpression(0));
+
+        AST orNode = AST.newSubtree(OR_NODE, BOOL_TYPE); //Cria nó or
+
+        int i = 1;
+        AST lastChild = visit(ctx.logicalAndExpression(0)); // Primeira expressao
+        orNode.addChild(lastChild);
+
+        while(ctx.logicalAndExpression(i) != null){
+            AST child = visit(ctx.logicalAndExpression(i++));
+
+            Type lt = child.type;
+            Type rt = lastChild.type;
+            Type unif = lt.unifyBooleans(rt);
+
+            if (unif == NO_TYPE)       // Verifica se a expressao anterior OU a expressao atual geram bool
+                typeError(434374838, "||", lt, rt); // Como pegar a linha???
+
+            orNode.addChild(child);
+            lastChild = child;
+        }
+        return orNode;
+    }
+
+    @Override
+    public AST visitLogicalAndExpression(LogicalAndExpressionContext ctx){
+        if (ctx.equalityExpression(1) == null)     // quer dizer que nao tem "&&"
+            return visit(ctx.equalityExpression(0));
+
+        AST andNode = AST.newSubtree(AND_NODE, BOOL_TYPE); //Cria nó and
+
+        int i = 1;
+        AST lastChild = visit(ctx.equalityExpression(0)); // Primeira expressao
+        andNode.addChild(lastChild);
+
+        while(ctx.equalityExpression(i) != null){
+            AST child = visit(ctx.equalityExpression(i++));
+
+            Type lt = child.type;
+            Type rt = lastChild.type;
+            Type unif = lt.unifyBooleans(rt);
+
+            if (unif == NO_TYPE)       // Verifica se a expressao anterior E a expressao atual geram bool
+                typeError(434374838, "&&", lt, rt); // Como pegar a linha???
+
+            andNode.addChild(child);
+            lastChild = child;
+        }
+        return andNode;
+    }
+
+    // Comparacionais
+    @Override
+    public AST visitEqExpression(EqExpressionContext ctx){
+        if (ctx.relationalExpression(1) == null)     // quer dizer que nao tem "==" ou "!="
+            return visit(ctx.relationalExpression(0));
+
+        String operator = ctx.equalityOperator().getText();
+        NodeKind equalityNode;
+
+        if (operator.equals("=="))
+            equalityNode = EQ_NODE;
+        else equalityNode = NEQ_NODE;
+
+        AST child1 = visit(ctx.relationalExpression(0));
+        AST child2 = visit(ctx.relationalExpression(1));
+
+        // Por causa do tipo void, devemos fazer essa verificação
+        Type lt = child1.type;
+        Type rt = child2.type;
+        Type unif = lt.unifyEquals(rt);
+
+        if (unif == NO_TYPE)
+            typeError(434374838, operator, lt, rt); // Como pegar a linha???
+
+        return AST.newSubtree(equalityNode, BOOL_TYPE, child1, child2);
+    }
+
+
+    // --------------------- Literais ----------------------
     @Override
     public AST visitNumVal(NumValContext ctx) {
         String value = ctx.getText();

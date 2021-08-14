@@ -108,7 +108,7 @@ public enum NodeKind {
         public String toString() {return "==";}
     },
     NEQ_NODE{
-        public String toString() {return "=!";}
+        public String toString() {return "!=";}
     },
     OR_NODE{
         public String toString() {return "||";}

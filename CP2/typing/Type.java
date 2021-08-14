@@ -65,15 +65,15 @@ public enum Type {
 
     public Type unifyOtherArith(Type that) {return other[this.ordinal()][that.ordinal()];};
 
-    //Tabela de unificação para "=="
+    //Tabela de unificação para "==" e "!="
 
     private static Type equals[][] = {
-        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
-        {BOOL_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
-        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
-        {NO_TYPE,NO_TYPE,NO_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE},
-        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
-        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,BOOL_TYPE}
+        {BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,NO_TYPE,BOOL_TYPE},
+        {BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,NO_TYPE,BOOL_TYPE},
+        {BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,NO_TYPE,BOOL_TYPE},
+        {BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,NO_TYPE,BOOL_TYPE},
+        {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}, //void
+        {BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,BOOL_TYPE,NO_TYPE,BOOL_TYPE}
     };
 
     public Type unifyEquals(Type that){ return equals[this.ordinal()][that.ordinal()];}
@@ -90,4 +90,17 @@ public enum Type {
     };
 
     public Type unifyComp(Type that){ return comp[this.ordinal()][that.ordinal()];}
+
+    //Tabela de unificação para operadores booleanos
+
+    private static Type booleans[][] = {
+            {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+            {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+            {NO_TYPE,NO_TYPE,BOOL_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}, //bool
+            {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+            {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE},
+            {NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE,NO_TYPE}
+    };
+
+    public Type unifyBooleans(Type that){ return booleans[this.ordinal()][that.ordinal()];}
 }

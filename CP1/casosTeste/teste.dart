@@ -1,12 +1,9 @@
-int x=10,y=5;
 void main() {
-	int x = 4;
-	int y=3;
-	y+=x;
-	List <int> b = [1,2,3];
-	if(true){
-		if(false){}
-		if(true){}
-		else
+	bool v = false || false;
+
+	if(v && true){
+		double x = 11.5;
+	}else{
+		int a = 10;
 	}
 }

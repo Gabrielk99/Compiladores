@@ -1,7 +1,15 @@
 String b;
 int x = 0;
 void main() {
-	bool v = false;
+	bool v = false && false;
 	double d=1.1;
 	List <int> c = [1,2,3];
+	
+	void nada;
+	if(nada == 1){
+		double x = 11.5;
+	}else{
+		int a = 10;
+	}
+
 }

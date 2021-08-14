@@ -623,8 +623,8 @@ logicalAndExpression
     :    equalityExpression ('&&' equalityExpression)*
     ;
 equalityExpression
-    :    relationalExpression (equalityOperator relationalExpression)?
-    |    SUPER equalityOperator relationalExpression
+    :    relationalExpression (equalityOperator relationalExpression)? #eqExpression
+    |    SUPER equalityOperator relationalExpression  #superEqExpression
     ;
 equalityOperator
     :    '=='
