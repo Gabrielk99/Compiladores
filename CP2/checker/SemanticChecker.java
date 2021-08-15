@@ -46,6 +46,12 @@ import parser.DartParser.StatementsContext;
 import parser.DartParser.LogicalAndExpressionContext;
 import parser.DartParser.LogicalOrExpressionContext;
 import parser.DartParser.EqExpressionContext;
+import parser.DartParser.TypeVoidContext;
+import parser.DartParser.AssignExpContext;
+import parser.DartParser.TimesAssignContext;
+import parser.DartParser.IdExpContext;
+
+
 
 import tables.StrTable;
 import tables.VarTable;
@@ -191,9 +197,6 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 else
                     lastType = BOOL_TYPE;
             break;
-            case "void":
-                lastType = VOID_TYPE;
-            break;
             case "List":
                 lastType = LIST_TYPE;
             break;
@@ -201,6 +204,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 lastType = NO_TYPE; 
         }
 
+        return null;
+    }
+    //Sobrescrevendo apenas por causa do tipo VOID
+    @Override
+    public AST visitTypeVoid(TypeVoidContext ctx){
+        lastType = VOID_TYPE;
         return null;
     }
     //Verifica se a operação = está correta
@@ -231,6 +240,50 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             }
         }
         return null;//AST.newSubtree(ASSIGN_NODE,NO_TYPE,l,r);
+    }
+    //------------------------- Assign Exp ------------------------------
+    @Override
+    public AST visitAssignExp(AssignExpContext ctx){
+        AST l = visit(ctx.assignableExpression()); //Coleta a arvore da esquerda da variavel
+        AST r = visit(ctx.expression()); //Coleta a arvore da direita da expressão
+        AST op = visit(ctx.assignmentOperator()); //Coleta a arvore do meio do operador de atribuição
+
+        //Unificação dos tipos para determinar o tipo resultante
+        Type lt = l.type;  
+        Type rt = r.type;
+
+        Unif unif;
+
+        if(op.kind != ASSIGN_PLUS_NODE){
+            unif = lt.unifyOtherArith(rt);
+        }
+        else unif = lt.unifyPlus(rt);
+
+        if(unif.type == NO_TYPE){
+            typeError(3123,op.kind.toString(),lt,rt);
+        }
+        
+        //Cria os nó de conversão caso exista
+
+        l = Conv.createConvNode(unif.lc,l);
+        r = Conv.createConvNode(unif.rc,r);
+
+        return AST.newSubtree(op.kind,unif.type,l,r) ;
+
+    }
+    // ---------------------- idExp (assignableExpression) ---------------
+    @Override
+    public AST visitIdExp(IdExpContext ctx){
+        visit(ctx.identifier());
+
+        AST node = checkVar(lastVar);
+
+        return node;
+    }
+    // ------------------------ *= ---------------------------
+    @Override
+    public AST visitTimesAssign(TimesAssignContext ctx){
+        return new AST(ASSIGN_TIMES_NODE,0,NO_TYPE);
     }
     // ------------------ Declaracao no topLVL -------------------
    //Regra de declaração de variável global
@@ -383,9 +436,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
             Type lt = child.type;
             Type rt = lastChild.type;
-            Type unif = lt.unifyBooleans(rt);
+            Unif unif = lt.unifyBooleans(rt);
 
-            if (unif == NO_TYPE)       // Verifica se a expressao anterior OU a expressao atual geram bool
+            if (unif.type == NO_TYPE)       // Verifica se a expressao anterior OU a expressao atual geram bool
                 typeError(434374838, "||", lt, rt); // Como pegar a linha???
 
             orNode.addChild(child);
@@ -410,9 +463,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
             Type lt = child.type;
             Type rt = lastChild.type;
-            Type unif = lt.unifyBooleans(rt);
+            Unif unif = lt.unifyBooleans(rt);
 
-            if (unif == NO_TYPE)       // Verifica se a expressao anterior E a expressao atual geram bool
+            if (unif.type == NO_TYPE)       // Verifica se a expressao anterior E a expressao atual geram bool
                 typeError(434374838, "&&", lt, rt); // Como pegar a linha???
 
             andNode.addChild(child);
@@ -440,9 +493,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         // Por causa do tipo void, devemos fazer essa verificação
         Type lt = child1.type;
         Type rt = child2.type;
-        Type unif = lt.unifyEquals(rt);
+        Unif unif = lt.unifyEquals(rt);
 
-        if (unif == NO_TYPE)
+        if (unif.type == NO_TYPE)
             typeError(434374838, operator, lt, rt); // Como pegar a linha???
 
         return AST.newSubtree(equalityNode, BOOL_TYPE, child1, child2);

@@ -425,11 +425,11 @@ metadatum
     |    qualifiedName
     ;
 expression
-    :    functionExpression
-    |    throwExpression
-    |    assignableExpression assignmentOperator expression
-    |    conditionalExpression
-    |    cascade
+    :    functionExpression #funcExp
+    |    throwExpression #throwExp
+    |    assignableExpression assignmentOperator expression #assignExp
+    |    conditionalExpression #condExp
+    |    cascade #cascadeExp
     ;
 expressionWithoutCascade
     :    functionExpressionWithoutCascade
@@ -595,19 +595,19 @@ assignmentOperator
     |    compoundAssignmentOperator
     ;
 compoundAssignmentOperator
-    :    '*='
-    |    '/='
-    |    '~/='
-    |    '%='
-    |    '+='
-    |    '-='
-    |    '<<='
-    |    '>' '>' '>' '='
-    |    '>' '>' '='
-    |    '&='
-    |    '^='
-    |    '|='
-    |    '??='
+    :    '*=' #timesAssign
+    |    '/=' #overAssign
+    |    '~/=' #overIntAssign
+    |    '%=' #modAssign
+    |    '+=' #plusAssign
+    |    '-=' #minusAssign
+    |    '<<=' #leftAssign
+    |    '>' '>' '>' '=' #right3Assign
+    |    '>' '>' '=' #rightAssign
+    |    '&=' #andAssign
+    |    '^=' #notAssign
+    |    '|=' #orAssign
+    |    '??=' #nullAssign
     ;
 conditionalExpression
     :    ifNullExpression
@@ -730,9 +730,9 @@ incrementOperator
     |    '--'
     ;
 assignableExpression //declaracaoDeVariavel com tipagem
-    :    SUPER unconditionalAssignableSelector
-    |    primary assignableSelectorPart
-    |    identifier
+    :    SUPER unconditionalAssignableSelector #uncAssignExp
+    |    primary assignableSelectorPart #assignSelectExp
+    |    identifier #idExp
     ;
 assignableSelectorPart //?
     :    selector* assignableSelector
@@ -963,8 +963,8 @@ typeNotVoid
     |    typeNotVoidNotFunction
     ;
 typeNotFunction
-    :    typeNotVoidNotFunction //declaracaoDeVariavel
-    |    VOID
+    :    typeNotVoidNotFunction #typeNotVF//declaracaoDeVariavel
+    |    VOID #typeVoid
     ;
 typeNotVoidNotFunction
     :    typeName typeArguments? '?'? //declaracaoDeVariavel
