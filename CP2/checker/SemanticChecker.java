@@ -251,7 +251,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitAssignExp(AssignExpContext ctx){
         AST l = visit(ctx.assignableExpression()); //Coleta a arvore da esquerda da variavel
         AST r = visit(ctx.expression()); //Coleta a arvore da direita da expressão
-        AST op = visit(ctx.assignmentOperator()); //Coleta a arvore do meio do operador de atribuição
+        AST op = visit(ctx.assignmentOperator()); //Coleta a arvore do meio do operador de atribuição (sem tipo definido, apenas para verificar a seguir o operador)
 
         //Unificação dos tipos para determinar o tipo resultante
         Type lt = l.type.getType();  
@@ -259,7 +259,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         Unif unif;
         
-        if(op.kind != ASSIGN_PLUS_NODE){
+        if(op.kind != ASSIGN_PLUS_NODE){ //se for += tem comportamento diferente (concatena Lista e String)
             unif = lt.unifyOtherArith(rt);
         }
         else {
