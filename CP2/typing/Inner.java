@@ -3,7 +3,10 @@ package typing;
 import typing.Type.*;
 import static typing.Type.LIST_TYPE;
 
-
+//Classe auxiliar para uso de List
+//Caso a lista seja vazia inner = no_type
+//Caso o tipo não seja lista, inner = no_type
+//Se o tipo é lista e não é vazia, inner = tipo da lista
 public class Inner {
     private Type type;
     private Type inner;
