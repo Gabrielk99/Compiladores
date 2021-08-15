@@ -26,21 +26,14 @@ public enum Type {
         public String toString() {return "void";}
     },
     LIST_TYPE{
-        public String toString() {
-            return getInner()+" list";
+        public String toString(){
+            return " list";
         }
     },
     NO_TYPE{ // usado para indicar erros de tipos.
         public String toString() {return "no_type";}
     };        
-    private Type innerType;
 
-    public void defineInner(Type inner){
-        this.innerType = inner;
-    }
-    public Type getInner(){
-        return innerType;
-    }
 
     // Tabela de unificação de tipos primitivos para "+"
     private static Unif plus[][] = {

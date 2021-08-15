@@ -6,6 +6,9 @@ import static ast.NodeKind.*;
 import typing.Type;
 import typing.Conv;
 import typing.Conv.Unif;
+import typing.Inner.*;
+import typing.Inner;
+
 import static typing.Type.INT_TYPE;
 import static typing.Type.DOUBLE_TYPE;
 import static typing.Type.STR_TYPE;
@@ -50,6 +53,13 @@ import parser.DartParser.TypeVoidContext;
 import parser.DartParser.AssignExpContext;
 import parser.DartParser.TimesAssignContext;
 import parser.DartParser.IdExpContext;
+import parser.DartParser.TypeNotVoidNotFunctionContext;
+import parser.DartParser.ExpressionStatementContext;
+import parser.DartParser.OverAssignContext;
+import parser.DartParser.PlusAssignContext;
+import parser.DartParser.MinusAssignContext;
+import parser.DartParser.ComposAssignContext;
+import parser.DartParser.AssignContext;
 
 
 
@@ -70,7 +80,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     private VarTable vt = new VarTable();   // Tabela de variáveis.
     private FuncTable ft = new FuncTable(); // Tabela de funcoes.
 
-    Type lastType; //Variável global com o último tipo declarado
+    Inner lastType; //Variável global com o último tipo declarado
     Token lastVar; //Variável global com o token da ultima variável declarada
 
     AST root; //Nó raiz da AST
@@ -112,7 +122,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             return null;
         }
         //Erro caso declara variável com um tipo não aceito
-        if(lastType == NO_TYPE){
+        if(lastType.getType() == NO_TYPE){
             System.out.printf("SEMANTIC ERROR (%d): incompatible type for var declaration '%s'\n",line,lastVarName);
             System.exit(1);
             return null;
@@ -121,14 +131,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node = new AST (VAR_DECL_NODE,k,vt.getType(k));
         return node;
     }
-    private static void typeError (int line, String op, Type t1, Type t2){
+    private static void typeError (int line, String op, Inner t1, Inner t2){
         System.out.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
     			line, op, t1.toString(), t2.toString());
     	System.exit(1);
     }
 
-    private static void checkBoolExpr(int lineNo, String cmd, Type t) {
-        if (t != BOOL_TYPE) {
+    private static void checkBoolExpr(int lineNo, String cmd, Inner t) {
+        if (t.getType() != BOOL_TYPE) {
             System.out.printf("SEMANTIC ERROR (%d): conditional expression in '%s' is '%s' instead of '%s'.\n",
                     lineNo, cmd, t.toString(), BOOL_TYPE.toString());
             System.exit(1);
@@ -147,7 +157,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         i=0;
         while (ctx.partDirective(i)!=null) visit(ctx.partDirective(i++)); //Também não vai rolar
         i=0;
-        this.root = AST.newSubtree(GLOBAL_NODE,NO_TYPE);
+        this.root = AST.newSubtree(GLOBAL_NODE,new Inner(NO_TYPE,NO_TYPE));
         while(ctx.metadata(i) != null || ctx.topLevelDefinition(i)!=null){
             scopeTree = new Tree(id_escopo_atual, null); // Cria nó raíz da arvore de escopos (escopo =0)
 
@@ -165,7 +175,18 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         lastVar = ctx.IDENTIFIER().getSymbol();
         return null;
     }
-
+    //Sobrescreve typeNotVoidNotFunction para lidar com listas
+    @Override
+    public AST visitTypeNotVoidNotFunction(TypeNotVoidNotFunctionContext ctx){
+        visit(ctx.typeName());
+        if(ctx.typeArguments()!=null){ //se tem argumento de tipo é lista
+            visit(ctx.typeArguments());
+            Inner listType = new Inner(LIST_TYPE,NO_TYPE);
+            listType.defInner(lastType.getType());
+            lastType = listType;
+        }
+        return null;
+    } 
     //Salva o tipo declarado
     @Override
     public AST visitTypeId(TypeIdContext ctx){
@@ -173,35 +194,19 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         switch(typeCtx){
             case "int":
-                if(lastType == LIST_TYPE){
-                    lastType.defineInner(INT_TYPE);
-                }
-                else
-                    lastType = INT_TYPE;
+                lastType = new Inner(INT_TYPE,NO_TYPE);
             break;
             case "double":
-                if(lastType==LIST_TYPE)
-                    lastType.defineInner(DOUBLE_TYPE);
-                else
-                    lastType = DOUBLE_TYPE;
+                lastType = new Inner(DOUBLE_TYPE,NO_TYPE);
             break;
             case "String":
-                if(lastType == LIST_TYPE)
-                    lastType.defineInner(STR_TYPE);
-                else
-                    lastType = STR_TYPE;
+                lastType = new Inner(STR_TYPE,NO_TYPE);
             break;
             case "bool":
-                if(lastType == LIST_TYPE)
-                    lastType.defineInner(BOOL_TYPE);
-                else
-                    lastType = BOOL_TYPE;
-            break;
-            case "List":
-                lastType = LIST_TYPE;
+                lastType = new Inner(BOOL_TYPE,NO_TYPE);
             break;
             default:
-                lastType = NO_TYPE; 
+                lastType = new Inner(NO_TYPE,NO_TYPE); 
         }
 
         return null;
@@ -209,37 +214,37 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     //Sobrescrevendo apenas por causa do tipo VOID
     @Override
     public AST visitTypeVoid(TypeVoidContext ctx){
-        lastType = VOID_TYPE;
+        lastType = new Inner(VOID_TYPE,NO_TYPE);
         return null;
     }
     //Verifica se a operação = está correta
     private static AST checkAssign(int line, AST l, AST r){
-        Type lt = l.type;
-        Type rt = r.type;
+        Inner lt = l.type;
+        Inner rt = r.type;
 
-        if(lt == BOOL_TYPE && rt!= BOOL_TYPE) typeError(line,"=",lt,rt);
-        if(lt == STR_TYPE && rt!= STR_TYPE) typeError(line,"=",lt,rt);
-        if(lt == INT_TYPE && rt!= INT_TYPE) typeError(line,"=",lt,rt);
-        if(lt == LIST_TYPE){
-            if(rt == LIST_TYPE){ 
-                if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE) typeError(line,"=",lt,rt);
-                if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE ) typeError(line,"=",lt,rt);
-                if(lt.getInner() == INT_TYPE && rt.getInner()!=INT_TYPE) typeError(line,"=",lt,rt);
-                if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE) typeError(line,"=",lt,rt);
+        if(lt.getType() == BOOL_TYPE && rt.getType()!= BOOL_TYPE) typeError(line,"=",lt,rt);
+        if(lt.getType() == STR_TYPE && rt.getType()!= STR_TYPE) typeError(line,"=",lt,rt);
+        if(lt.getType() == INT_TYPE && rt.getType()!= INT_TYPE) typeError(line,"=",lt,rt);
+        if(lt.getType() == LIST_TYPE){
+            if(rt.getType() == LIST_TYPE){ 
+                if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == INT_TYPE && (rt.getInner()!=INT_TYPE && rt.getInner()!=NO_TYPE)) typeError(line,"=",lt,rt);
+                if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
             }
-            else if(rt != LIST_TYPE){
+            else if(rt.getType() != LIST_TYPE){
                 typeError(line,"=",lt,rt);
             }
         }
-        if(lt == DOUBLE_TYPE){
-            if(rt == INT_TYPE){
+        if(lt.getType() == DOUBLE_TYPE){
+            if(rt.getType() == INT_TYPE){
                 r = Conv.createConvNode(I2D,r);
             }
-            else if(rt != DOUBLE_TYPE){
+            else if(rt.getType() != DOUBLE_TYPE){
                 typeError(line,"=",lt,rt);
             }
         }
-        return null;//AST.newSubtree(ASSIGN_NODE,NO_TYPE,l,r);
+        return AST.newSubtree(ASSIGN_NODE,new Inner(NO_TYPE,NO_TYPE),l,r);
     }
     //------------------------- Assign Exp ------------------------------
     @Override
@@ -249,27 +254,47 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST op = visit(ctx.assignmentOperator()); //Coleta a arvore do meio do operador de atribuição
 
         //Unificação dos tipos para determinar o tipo resultante
-        Type lt = l.type;  
-        Type rt = r.type;
+        Type lt = l.type.getType();  
+        Type rt = r.type.getType();
 
         Unif unif;
-
+        
         if(op.kind != ASSIGN_PLUS_NODE){
             unif = lt.unifyOtherArith(rt);
         }
-        else unif = lt.unifyPlus(rt);
-
+        else {
+         
+            unif = lt.unifyPlus(rt);
+       
+        }
         if(unif.type == NO_TYPE){
-            typeError(3123,op.kind.toString(),lt,rt);
+            typeError(ctx.assignmentOperator().getStart().getLine(),op.kind.toString(),new Inner(lt,l.type.getInner()),new Inner(rt,r.type.getInner()));
         }
         
         //Cria os nó de conversão caso exista
 
-        l = Conv.createConvNode(unif.lc,l);
+        AST lc = Conv.createConvNode(unif.lc,l);
         r = Conv.createConvNode(unif.rc,r);
-
-        return AST.newSubtree(op.kind,unif.type,l,r) ;
-
+        
+        AST child;
+        if(op.kind.toString().equals("*=")){
+            child = AST.newSubtree(TIMES_NODE,new Inner(unif.type,r.type.getInner()),lc,r);
+            return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,child);
+        }
+        else if(op.kind.toString().equals("/=")){
+            child = AST.newSubtree(OVER_NODE,new Inner(unif.type,r.type.getInner()),lc,r);
+            return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,child);
+        }
+        else if(op.kind.toString().equals("-=")){
+            child = AST.newSubtree(MINUS_NODE,new Inner(unif.type,r.type.getInner()),lc,r);
+            return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,child);
+        }
+         else if(op.kind.toString().equals("+=")){
+            child = AST.newSubtree(PLUS_NODE,new Inner(unif.type,r.type.getInner()),lc,r);
+            return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,child);
+        }
+   
+        return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,r); // caso seja "="
     }
     // ---------------------- idExp (assignableExpression) ---------------
     @Override
@@ -283,8 +308,42 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     // ------------------------ *= ---------------------------
     @Override
     public AST visitTimesAssign(TimesAssignContext ctx){
-        return new AST(ASSIGN_TIMES_NODE,0,NO_TYPE);
+        return new AST(ASSIGN_TIMES_NODE,0,new Inner(NO_TYPE,NO_TYPE));
     }
+    // ------------------------ /= ---------------------------
+    @Override
+    public AST visitOverAssign(OverAssignContext ctx){
+        return new AST(ASSIGN_OVER_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    // ------------------------ += ---------------------------
+    @Override
+    public AST visitPlusAssign(PlusAssignContext ctx){
+        return new AST(ASSIGN_PLUS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    // ------------------------ -= ---------------------------
+    @Override
+    public AST visitMinusAssign(MinusAssignContext ctx){
+        return new AST(ASSIGN_MINUS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    // ------------------------ = ---------------------------
+    @Override
+    public AST visitAssign(AssignContext ctx){
+        return new AST(ASSIGN_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    // ----------------------- composAssign ------------------
+    @Override
+    public AST visitComposAssign(ComposAssignContext ctx){
+        return visit(ctx.compoundAssignmentOperator());
+    }
+    // ---------------------- ExpressionStatement ----------------
+    @Override
+    public AST visitExpressionStatement(ExpressionStatementContext ctx){
+        if(ctx.expression()!=null){
+           return visit(ctx.expression());
+        }
+        return null;
+    }
+
     // ------------------ Declaracao no topLVL -------------------
    //Regra de declaração de variável global
 
@@ -303,10 +362,10 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         if (ctx.expression() != null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
         }
         
-        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
+        return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
         
     }
     // -------------------------- Declaracao local ----------------
@@ -317,6 +376,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         visit(ctx.identifier());
 
         AST node = newVar(lastVar);
+        AST.printDot(node,vt);
 
         return node;
     }
@@ -332,10 +392,10 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         if(ctx.expression()!=null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
         }
        
-        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
+        return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
     }
     //Regra para salvar também int x, y, b, c, ....;
     @Override
@@ -345,9 +405,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node2;
         if(ctx.expression() != null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
         }
-        return AST.newSubtree(INSTANCE_VAR_NODE,NO_TYPE,node);
+        return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
     }
     // -------------------- Declaração local regra principal --------------
     @Override
@@ -386,7 +446,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitStatements(StatementsContext ctx){
         int i =0;
-        AST rt = new AST(BLOCK_NODE,0,NO_TYPE);
+        AST rt = new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE));
         while(ctx.statement(i)!=null){
             AST node = visit(ctx.statement(i++));
             rt.addChild(node);
@@ -410,9 +470,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if(ctx.ELSE() != null){
             AST elseNode = visit(ctx.statement(1));
 
-            subTreeIFNode = AST.newSubtree(IF_NODE, NO_TYPE, exprNode, thenNode, elseNode);
+            subTreeIFNode = AST.newSubtree(IF_NODE, new Inner(NO_TYPE,NO_TYPE), exprNode, thenNode, elseNode);
         }else
-            subTreeIFNode = AST.newSubtree(IF_NODE, NO_TYPE, exprNode, thenNode);
+            subTreeIFNode = AST.newSubtree(IF_NODE, new Inner(NO_TYPE,NO_TYPE), exprNode, thenNode);
 
         return subTreeIFNode;
     }
@@ -425,7 +485,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if (ctx.logicalAndExpression(1) == null)     // quer dizer que nao tem "||"
             return visit(ctx.logicalAndExpression(0));
 
-        AST orNode = AST.newSubtree(OR_NODE, BOOL_TYPE); //Cria nó or
+        AST orNode = AST.newSubtree(OR_NODE, new Inner(BOOL_TYPE,NO_TYPE)); //Cria nó or
 
         int i = 1;
         AST lastChild = visit(ctx.logicalAndExpression(0)); // Primeira expressao
@@ -434,12 +494,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         while(ctx.logicalAndExpression(i) != null){
             AST child = visit(ctx.logicalAndExpression(i++));
 
-            Type lt = child.type;
-            Type rt = lastChild.type;
+            Type lt = child.type.getType();
+            Type rt = lastChild.type.getType();
             Unif unif = lt.unifyBooleans(rt);
 
             if (unif.type == NO_TYPE)       // Verifica se a expressao anterior OU a expressao atual geram bool
-                typeError(434374838, "||", lt, rt); // Como pegar a linha???
+                typeError(434374838, "||", child.type, lastChild.type); // Como pegar a linha???
 
             orNode.addChild(child);
             lastChild = child;
@@ -452,7 +512,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if (ctx.equalityExpression(1) == null)     // quer dizer que nao tem "&&"
             return visit(ctx.equalityExpression(0));
 
-        AST andNode = AST.newSubtree(AND_NODE, BOOL_TYPE); //Cria nó and
+        AST andNode = AST.newSubtree(AND_NODE, new Inner(BOOL_TYPE,NO_TYPE)); //Cria nó and
 
         int i = 1;
         AST lastChild = visit(ctx.equalityExpression(0)); // Primeira expressao
@@ -461,12 +521,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         while(ctx.equalityExpression(i) != null){
             AST child = visit(ctx.equalityExpression(i++));
 
-            Type lt = child.type;
-            Type rt = lastChild.type;
+            Type lt = child.type.getType();
+            Type rt = lastChild.type.getType();
             Unif unif = lt.unifyBooleans(rt);
 
             if (unif.type == NO_TYPE)       // Verifica se a expressao anterior E a expressao atual geram bool
-                typeError(434374838, "&&", lt, rt); // Como pegar a linha???
+                typeError(434374838, "&&", child.type, lastChild.type); // Como pegar a linha???
 
             andNode.addChild(child);
             lastChild = child;
@@ -491,14 +551,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST child2 = visit(ctx.relationalExpression(1));
 
         // Por causa do tipo void, devemos fazer essa verificação
-        Type lt = child1.type;
-        Type rt = child2.type;
+        Type lt = child1.type.getType();
+        Type rt = child2.type.getType();
         Unif unif = lt.unifyEquals(rt);
 
         if (unif.type == NO_TYPE)
-            typeError(434374838, operator, lt, rt); // Como pegar a linha???
+            typeError(434374838, operator, child1.type, child2.type); // Como pegar a linha???
 
-        return AST.newSubtree(equalityNode, BOOL_TYPE, child1, child2);
+        return AST.newSubtree(equalityNode, new Inner(unif.type,NO_TYPE), child1, child2);
     }
 
 
@@ -509,11 +569,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node;
         if(value.matches("(\\d)*\\.(\\d)*")){
             double num = Double.parseDouble(value);
-            node = new AST(DOUBLE_VAL_NODE,num,DOUBLE_TYPE);
+            node = new AST(DOUBLE_VAL_NODE,num,new Inner(DOUBLE_TYPE,NO_TYPE));
         }
         else{
             int num = Integer.parseInt(value);
-            node = new AST(INT_VAL_NODE,num,INT_TYPE); 
+            node = new AST(INT_VAL_NODE,num,new Inner(INT_TYPE,NO_TYPE)); 
         }
         
         return node;
@@ -524,21 +584,21 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitSingleLineRawStr(SingleLineRawStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
     @Override
     public AST visitSingleLineSQStr(SingleLineSQStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
     @Override
     public AST visitSingleLineDQStr(SingleLineDQStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
     //String de multiplas linhas
@@ -546,21 +606,21 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitMultiLineRawStr(MultiLineRawStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
     @Override
     public AST visitMultiLineSQStr(MultiLineSQStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-       AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+       AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
     @Override
     public AST visitMultiLineDQStr(MultiLineDQStrContext ctx) {
         String strData = ctx.getText();
         st.addStr(strData,strData.hashCode());
-        AST node = new AST(STR_VAL_NODE,strData.hashCode(),STR_TYPE);
+        AST node = new AST(STR_VAL_NODE,strData.hashCode(),new Inner(STR_TYPE,NO_TYPE));
         return node;
     }
 
@@ -568,12 +628,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitTrueVal(TrueValContext ctx) {
         // Só serve pra adicionar na ast o nó com intData = 1
-        return new AST(BOOL_VAL_NODE,1,BOOL_TYPE);
+        return new AST(BOOL_VAL_NODE,1,new Inner(BOOL_TYPE, NO_TYPE));
     }
     @Override
     public AST visitFalseVal(FalseValContext ctx) {
         // Só serve pra adicionar na ast o nó com intData = 0
-        return new AST(BOOL_VAL_NODE,0,BOOL_TYPE);
+        return new AST(BOOL_VAL_NODE,0,new Inner(BOOL_TYPE,NO_TYPE));
     }
     //List val 
     //É mais complexo lidar com ListVal que os tipos básicos primitivos
@@ -581,13 +641,21 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
     @Override
     public AST visitElements(ElementsContext ctx){
+        AST rt = AST.newSubtree(LIST_VAL_NODE,new Inner(LIST_TYPE,NO_TYPE)); //Cria o nó raiz como LIST_VAL_NODE do tipo LIST
 
-        AST rt = AST.newSubtree(LIST_VAL_NODE,LIST_TYPE); //Cria o nó raiz como LIST_VAL_NODE do tipo LIST
-  
         int i = 0;
+        Type startType=NO_TYPE;
         while(ctx.element(i)!=null){
+            
             AST node = visit(ctx.element(i++)); //caminha pelos outros elementos 
-
+            if(i == 1 ) startType = node.type.getType();
+            else {
+                if (startType!=node.type.getType()){
+                    System.out.printf("SEMANTIC ERROR (%d) - Is not possible use a list values with diferent type of values\n",
+                    ctx.element(i-1).getStart().getLine());
+                    System.exit(1);
+                }
+            }
             rt.addChild(node); //adiciona eles na lista
         }
 
@@ -596,20 +664,20 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     }
     @Override //Essa é a principal para valores de lista
     public AST visitListLiteral(ListLiteralContext ctx){
-        
-
         if(ctx.typeArguments()!=null){
-            visit(ctx.typeArguments()); //apenas para visitar, já que não armazenamos esse tipo (assumimos listas previamente tipadas)
+            visit(ctx.typeArguments()); 
         }
-        
         if(ctx.elements()!=null){
            
             AST node = visit(ctx.elements());
+            node.type.defInner(node.getChild(0).type.getType());
+            AST.printDot(node,vt);
+            System.out.println(vt);
             return node;
         
-        }
-
-        return new AST(LIST_VAL_NODE,0,LIST_TYPE);
+        } 
+        
+        return new AST(LIST_VAL_NODE,0,new Inner(LIST_TYPE,NO_TYPE));
     }
  void printTables() {
         System.out.print("\n\n");

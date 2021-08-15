@@ -7,6 +7,7 @@ import java.util.List;
 
 import tables.VarTable;
 import typing.Type;
+import typing.Inner;
 import tables.Key;
 // Implementação dos nós da AST.
 public class AST {
@@ -14,13 +15,13 @@ public class AST {
 	public  final NodeKind kind;
 	public  final int intData;
 	public  final double doubleData;
-	public  final Type type;
+	public  final Inner type;
 	public final Key key;
 	private final List<AST> children; // Privado para que a manipulação da lista seja controlável.
 
 	// Construtor completo para poder tornar todos os campos finais.
 	// Privado porque não queremos os dois campos 'data' preenchidos ao mesmo tempo.
-	private AST(NodeKind kind, int intData, double doubleData, Type type, Key key) {
+	private AST(NodeKind kind, int intData, double doubleData, Inner type, Key key) {
 		this.kind = kind;
 		this.intData = intData;
 		this.doubleData = doubleData;
@@ -30,16 +31,16 @@ public class AST {
 	}
 
 	// Cria o nó com um dado inteiro.
-	public AST(NodeKind kind, int intData, Type type) {
+	public AST(NodeKind kind, int intData, Inner type) {
 		this(kind, intData, 0.0f, type, null);
 	}
 
 	// Cria o nó com um dado double.
-	public AST(NodeKind kind, double doubleData, Type type) {
+	public AST(NodeKind kind, double doubleData, Inner type) {
 		this(kind, 0, doubleData, type, null);
 	}
 	// Cria o nó com um dado Key
-	public AST(NodeKind kind, Key key, Type type){
+	public AST(NodeKind kind, Key key, Inner type){
 		this(kind, 0, 0.0f, type,key);
 	}
 	// Adiciona um novo filho ao nó.
@@ -57,7 +58,7 @@ public class AST {
 	}
 
 	// Cria um nó e pendura todos os filhos passados como argumento.
-	public static AST newSubtree(NodeKind kind, Type type, AST... children) {
+	public static AST newSubtree(NodeKind kind, Inner type, AST... children) {
 		AST node = new AST(kind, 0, type);
 	    for (AST child: children) {
 	    	node.addChild(child);
@@ -76,7 +77,7 @@ public class AST {
 		int myNr = nr++;
 
 	    System.err.printf("node%d[label=\"", myNr);
-	    if (this.type != NO_TYPE) {
+	    if (this.type.getType() != NO_TYPE) {
 	    	System.err.printf("(%s) ", this.type.toString());
 	    }
 	    if (this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE ||

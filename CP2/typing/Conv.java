@@ -4,6 +4,8 @@ import static ast.NodeKind.I2D_NODE;
 
 import ast.AST;
 import static typing.Type.DOUBLE_TYPE;
+import static typing.Type.NO_TYPE;
+import typing.Inner;
 public enum Conv {
     I2D, //INT TO DOUBLE
     NONE; // No type conversion
@@ -14,7 +16,7 @@ public enum Conv {
 	// nó passado como argumento.
 	public static AST createConvNode(Conv conv, AST n) {
 	    switch(conv) {
-	        case I2D:  return AST.newSubtree(I2D_NODE,DOUBLE_TYPE,n);
+	        case I2D:  return AST.newSubtree(I2D_NODE,new Inner(DOUBLE_TYPE,NO_TYPE),n);
 	        case NONE: return n;
 	        default:
 	            System.err.printf("INTERNAL ERROR: invalid conversion of types!\n");

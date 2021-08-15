@@ -591,8 +591,8 @@ cascadeAssignment
     :    assignmentOperator expressionWithoutCascade
     ;
 assignmentOperator
-    :    '='
-    |    compoundAssignmentOperator
+    :    '=' #Assign
+    |    compoundAssignmentOperator #composAssign
     ;
 compoundAssignmentOperator
     :    '*=' #timesAssign

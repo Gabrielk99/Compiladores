@@ -6,6 +6,7 @@ import java.util.Formatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import typing.Type;
+import typing.Inner;
 
 public final class FuncTable{
     private Hashtable<Key,Entry> table = new Hashtable<Key,Entry> ();
@@ -14,7 +15,7 @@ public final class FuncTable{
         Key aux_key = new Key(s,id);
         return table.containsKey(aux_key);
     }
-    public void addFunc(String s, int line, Type type, int id_escopo, ArrayList <Type> parameters,boolean bultin){
+    public void addFunc(String s, int line, Inner type, int id_escopo, ArrayList <Type> parameters,boolean bultin){
         Key key = new Key (s, id_escopo);
         Entry entry = new Entry (s,line,type,id_escopo,parameters,bultin);
         table.put(key,entry);
@@ -25,7 +26,7 @@ public final class FuncTable{
     }
 
     public Type getType(Key k){
-        return table.get(k).type;
+        return table.get(k).type.getType();
     }
 
     public int getLine(Key k){
@@ -59,13 +60,13 @@ public final class FuncTable{
     private static final class Entry {
 		private final String name;
 		private final int line;
-		private final Type type;
+		private final Inner type;
         private final int id_escopo;
         private ArrayList <Type> parameters = new ArrayList <Type> ();      
 		private final boolean bultin;
 
 
-		Entry(String name, int line, Type type, int id_escopo, ArrayList <Type> parameters, boolean bultin) {
+		Entry(String name, int line, Inner type, int id_escopo, ArrayList <Type> parameters, boolean bultin) {
 			this.name = name;
 			this.line = line;
 			this.type = type;

@@ -25,9 +25,9 @@ public final class StrTable {
         f.format("Strings table:\n");
         for (Map.Entry mapElement : table.entrySet()){
             
-            Key key = (Key)mapElement.getKey();
+            int hashcode = (int)mapElement.getKey();
 
-            f.format("Entry %d -- %s\n", key, table.get(key));
+            f.format("Entry %d -- %s\n", hashcode, table.get(hashcode));
         }
 
         f.close();

@@ -6,6 +6,7 @@ import java.util.Formatter;
 import java.util.List;
 
 import typing.Type;
+import typing.Inner;
 
 public final class VarTable{
     private Hashtable<Key, Entry> table = new Hashtable<Key, Entry>();
@@ -15,7 +16,7 @@ public final class VarTable{
         return table.containsKey(aux_key);
 	}
 	
-	public void addVar(String s, int line, Type type, int id_escopo) {
+	public void addVar(String s, int line, Inner type, int id_escopo) {
 		Key key = new Key(s, id_escopo);
 		Entry entry = new Entry(s, line, type, id_escopo);
 		table.put(key, entry);
@@ -29,7 +30,7 @@ public final class VarTable{
 		return table.get(k).line;
 	}
 	
-	public Type getType(Key k) {
+	public Inner getType(Key k) {
 		return table.get(k).type;
 	}
 
@@ -56,10 +57,10 @@ public final class VarTable{
     private static final class Entry {
 		private final String name;
 		private final int line;
-		private final Type type;
+		private final Inner type;
         private final int id_escopo;        
 		
-		Entry(String name, int line, Type type, int id_escopo) {
+		Entry(String name, int line, Inner type, int id_escopo) {
 			this.name = name;
 			this.line = line;
 			this.type = type;
