@@ -632,8 +632,8 @@ equalityOperator
     ;
 relationalExpression
     :    bitwiseOrExpression
-         (typeTest | typeCast | relationalOperator bitwiseOrExpression)?
-    |    SUPER relationalOperator bitwiseOrExpression
+         (typeTest | typeCast | relationalOperator bitwiseOrExpression)? #relationalExp
+    |    SUPER relationalOperator bitwiseOrExpression   #superRelationalExp
     ;
 relationalOperator
     :    '>' '='

@@ -1,10 +1,13 @@
 String b;
 int x = 0;
 void main() {
-	bool v = false && false;
-	double d=1.1;
-	int b = 3;
-	
+    while(x ==0){
+        x+= 1;
+        if(x == 2)
+            x = 10;
+    }
+
+	/*int b = 1;
 	b+=2;
 	b-=1;
 	b*=4;
@@ -35,5 +38,5 @@ void main() {
 	}else{
 		int a = 10;
 	}
-
+    */
 }

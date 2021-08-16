@@ -122,6 +122,9 @@ public enum NodeKind {
     WHILE_NODE{
         public String toString() {return "while";}
     },
+    DO_WHILE_NODE{
+        public String toString() {return "do_while";}
+    },
     I2D_NODE{
         public String toString() {return "I2D";}
     },

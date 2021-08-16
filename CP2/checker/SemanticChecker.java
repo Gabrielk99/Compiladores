@@ -60,8 +60,9 @@ import parser.DartParser.PlusAssignContext;
 import parser.DartParser.MinusAssignContext;
 import parser.DartParser.ComposAssignContext;
 import parser.DartParser.AssignContext;
-
-
+import parser.DartParser.RelationalExpContext;
+import parser.DartParser.WhileStatementContext;
+import parser.DartParser.DoStatementContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -95,15 +96,22 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         String name = token.getText();
         int line = token.getLine();
 
-        Key k = new Key(name,id_escopo_atual);
+        Tree aux_tree = scopeTree;
+        int aux_id = id_escopo_atual;
 
-        if(!vt.lookupVar(name,id_escopo_atual)){
-            System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
-    		
-            System.exit(1);//Aborta o compilador caso haja erro de semantica
-
-            return null; //Nunca vai executar
+        while(aux_tree != null && !vt.lookupVar(name,aux_id)){ //Busca nos escopos externos
+            aux_tree = aux_tree.getPai();
+            aux_id = aux_tree.getIdEscopo();
         }
+
+        if(aux_tree == null){  // Se nao encontrar
+            System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
+
+            System.exit(1);//Aborta o compilador caso haja erro de semantica
+            return null; //Nunca executa
+        }
+
+        Key k = new Key(name,aux_id);
         return new AST(VAR_USE_NODE,k,vt.getType(k));
     }
 
@@ -477,6 +485,24 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         return subTreeIFNode;
     }
 
+    // ------------------- WHILE E DO WHILE --------------------
+    @Override
+    public AST visitWhileStatement(WhileStatementContext ctx){
+
+        // Analisa expressao booleana
+        AST exprNode = visit(ctx.expression());
+        checkBoolExpr(ctx.WHILE().getSymbol().getLine(), "while", exprNode.type);
+
+        AST whileNode = visit(ctx.statement());
+
+        return AST.newSubtree(WHILE_NODE, new Inner(NO_TYPE, NO_TYPE), whileNode, exprNode);
+    }
+
+    /*@Override
+    public AST visitDoStatement(DoStatementContext ctx){
+
+    }*/
+
     // ------------------- Operadores -----------------------
 
     // Lógicos
@@ -559,6 +585,43 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             typeError(434374838, operator, child1.type, child2.type); // Como pegar a linha???
 
         return AST.newSubtree(equalityNode, new Inner(unif.type,NO_TYPE), child1, child2);
+    }
+
+    @Override
+    public AST visitRelationalExp(RelationalExpContext ctx){
+        if (ctx.bitwiseOrExpression(1) == null)     // quer dizer que nao tem operador
+            return visit(ctx.bitwiseOrExpression(0));
+
+        String operator = ctx.relationalOperator().getText();
+        NodeKind comparationalNode = null;
+
+        switch (operator){
+            case ">":
+                comparationalNode = GT_NODE;
+                break;
+            case ">=":
+                comparationalNode = GEQ_NODE;
+                break;
+            case "<":
+                comparationalNode = LT_NODE;
+                break;
+            case "<=":
+                comparationalNode = LEQ_NODE;
+                break;
+        }
+
+        AST child1 = visit(ctx.bitwiseOrExpression(0));
+        AST child2 = visit(ctx.bitwiseOrExpression(1));
+
+        // Por causa do tipo void, devemos fazer essa verificação
+        Type lt = child1.type.getType();
+        Type rt = child2.type.getType();
+        Unif unif = lt.unifyComp(rt);
+
+        if (unif.type == NO_TYPE)
+            typeError(434374838, operator, child1.type, child2.type); // Como pegar a linha???
+
+        return AST.newSubtree(comparationalNode, new Inner(unif.type,NO_TYPE), child1, child2);
     }
 
 
