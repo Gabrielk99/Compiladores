@@ -52,11 +52,14 @@ public class AST {
 	// Retorna o filho no índice passado.
 	// Não há nenhuma verificação de erros!
 	public AST getChild(int idx) {
-		// Claro que um código em produção precisa testar o índice antes para
-		// evitar uma exceção.
-	    return this.children.get(idx);
+		//Testando se o indice está no intervalo
+		if(0<=idx && idx<this.children.size())
+	    	return this.children.get(idx);
+		else return null;
 	}
-
+	public List<AST> getChildren(){
+		return this.children;
+	}
 	// Cria um nó e pendura todos os filhos passados como argumento.
 	public static AST newSubtree(NodeKind kind, Inner type, AST... children) {
 		AST node = new AST(kind, 0, type);

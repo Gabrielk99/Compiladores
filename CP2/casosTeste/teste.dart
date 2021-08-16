@@ -1,11 +1,15 @@
 String b;
-int x = 0;
+double x = 1.8;
 void main() {
-    while(x ==0){
-        x+= 1;
-        if(x == 2)
-            x = 10;
-    }
+	int i = 0;
+	for(i; i<= 10; i+=1,x+=2){
+		x += i;
+	}
+    // while(x ==0){
+    //     x+= 1;
+    //     if(x == 2)
+    //         x = 10;
+    // }
 
 	/*int b = 1;
 	b+=2;

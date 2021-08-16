@@ -68,6 +68,9 @@ public enum NodeKind {
     FOR_NODE{
         public String toString() {return "for";}
     },
+    FOR_PARTS_NODE{
+        public String toString() {return "for parts";}
+    },
     PLUS_NODE{
         public String toString() {return "+";}
     },

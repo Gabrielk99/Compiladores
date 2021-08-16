@@ -21,4 +21,5 @@ public class Tree{
     public Tree getPai(){
         return pai;
     }
+    
 }

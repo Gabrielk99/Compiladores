@@ -63,6 +63,19 @@ import parser.DartParser.AssignContext;
 import parser.DartParser.RelationalExpContext;
 import parser.DartParser.WhileStatementContext;
 import parser.DartParser.DoStatementContext;
+import parser.DartParser.AdditiveExpressionContext;
+import parser.DartParser.PlusOpContext;
+import parser.DartParser.MinusOpContext;
+import parser.DartParser.TimesOpContext;
+import parser.DartParser.OverOpContext;
+import parser.DartParser.ModOpContext;
+import parser.DartParser.OverIntOpContext;
+import parser.DartParser.MultiplicativeExpressionContext;
+import parser.DartParser.ForStatementContext;
+import parser.DartParser.ForLoopContext;
+import parser.DartParser.DeclaredVariableForPartsContext;
+import parser.DartParser.ExpForPartsContext;
+import parser.DartParser.ExpressionListContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -74,6 +87,7 @@ import tables.Tree;
 import ast.AST.*;
 import ast.AST;
 
+import java.util.List;
 
 public class SemanticChecker extends DartBaseVisitor<AST> {
 
@@ -97,14 +111,17 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         int line = token.getLine();
 
         Tree aux_tree = scopeTree;
-        int aux_id = id_escopo_atual;
+        int aux_id = aux_tree.getIdEscopo();
+
+        
 
         while(aux_tree != null && !vt.lookupVar(name,aux_id)){ //Busca nos escopos externos
             aux_tree = aux_tree.getPai();
-            aux_id = aux_tree.getIdEscopo();
+            if(aux_tree!=null) aux_id = aux_tree.getIdEscopo();
         }
 
         if(aux_tree == null){  // Se nao encontrar
+            System.out.println("opa");
             System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
 
             System.exit(1);//Aborta o compilador caso haja erro de semantica
@@ -267,15 +284,18 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         Unif unif;
         
-        if(op.kind != ASSIGN_PLUS_NODE){ //se for += tem comportamento diferente (concatena Lista e String)
+        //Faz a unificação de outros aritmeticos apenas se for atribuições aritimeticas sem ser PLUS pela diferença
+        if(op.kind != ASSIGN_PLUS_NODE && op.kind != ASSIGN_NODE){ //se for += tem comportamento diferente (concatena Lista e String)
             unif = lt.unifyOtherArith(rt);
         }
+        //Faz a unificação se for PLUS (entretanto se for somente "=" ele tbm faz)
         else {
          
             unif = lt.unifyPlus(rt);
        
         }
-        if(unif.type == NO_TYPE){
+        //Por isso só vamos lançar o erro se o operador for diferente de "="
+        if(unif.type == NO_TYPE && op.kind!= ASSIGN_NODE){
             typeError(ctx.assignmentOperator().getStart().getLine(),op.kind.toString(),new Inner(lt,l.type.getInner()),new Inner(rt,r.type.getInner()));
         }
         
@@ -302,7 +322,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,child);
         }
    
-        return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,r); // caso seja "="
+        return checkAssign(ctx.assignmentOperator().getStart().getLine(),l,r); // caso seja "=" (tratamos o erro aqui)
     }
     // ---------------------- idExp (assignableExpression) ---------------
     @Override
@@ -384,7 +404,6 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         visit(ctx.identifier());
 
         AST node = newVar(lastVar);
-        AST.printDot(node,vt);
 
         return node;
     }
@@ -502,9 +521,234 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitDoStatement(DoStatementContext ctx){
 
     }*/
+    
+    // --------------------- FOR ----------------------------
+    @Override
+    public AST visitForStatement(ForStatementContext ctx){
+        AST child1 = visit(ctx.forLoopParts());
+        AST child2 = visit(ctx.statement());
+        return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
+    }
+    //For (parameters)
+    @Override
+    public AST visitForLoop(ForLoopContext ctx){
+        id_escopo_atual = id_escopo_counter+1; //apenas forçando que o parametro do for caso seja declarado
+                        //dentro do () seja do escopo interno do for
+        scopeTree = scopeTree.addChild(id_escopo_atual);
+        AST child1 = visit(ctx.forInitializerStatement());
+        AST child2 = null;
+        AST child3 = null;
+
+        if(ctx.expression()!=null) child2 = visit(ctx.expression());
+        if(ctx.expressionList()!=null) child3 = visit(ctx.expressionList());
+        
+        scopeTree = scopeTree.getPai();
+        id_escopo_atual--; //retornando ao escopo atual correto
+        if(child2!=null && child3!=null) {
+            
+            AST rt = AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
+            List <AST> children = child3.getChildren();
+            
+            for(AST child : children){
+                rt.addChild(child);
+            }
+            return rt;
+
+        } 
+        else if(child2!=null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
+        else if(child3!=null) {
+            AST rt =  AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
+            List <AST> children = child3.getChildren();
+
+            for(AST child : children){
+                rt.addChild(child);
+            }
+            return rt;
+        }
+        return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
+    }
+    //parameter for 1
+    @Override
+    public AST visitDeclaredVariableForParts(DeclaredVariableForPartsContext ctx){
+        AST node = visit(ctx.localVariableDeclaration());
+
+        return node;
+    }
+    @Override 
+    public AST visitExpForParts(ExpForPartsContext ctx){
+        if(ctx.expression()!=null) return visit(ctx.expression());
+        return null;
+    }
+    //parameter for 2 is expression 
+
+    //parameter for 3
+    @Override
+    public AST visitExpressionList(ExpressionListContext ctx){
+        AST node =  new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE)); //Isso é um block inexistente
+                                                                //usado apenas para administrar as expressões
+
+        int i = 0;
+        while (ctx.expression(i)!=null){
+            node.addChild(visit(ctx.expression(i++)));
+        }
+        return node;
+    }
+    
 
     // ------------------- Operadores -----------------------
+    
+    //Aritmeticos
 
+    //PLUS / MINUS
+    @Override
+    public AST visitAdditiveExpression (AdditiveExpressionContext ctx){
+
+        AST node1 = visit(ctx.multiplicativeExpression(0)); //pega o primeiro elemento
+                                                            // que pode ser um derivada de multiplicação ou uma variavel ou literal
+ 
+        if(ctx.additiveOperator(0)==null){ //se não tem + ou -, então é multiplicação
+           return node1;
+        }
+        
+        int i = ctx.additiveOperator().size(); //pega o tamanho das somas 
+        AST old_node2 = null; 
+        while(i>=1){ //É uma operação de adição 
+            AST op = visit(ctx.additiveOperator(i-1)); //pega o operador de adição
+          
+
+            if (i == ctx.additiveOperator().size()){ //se for o ultimo
+                AST node2 = visit(ctx.multiplicativeExpression(i)); //pega o ultimo valor
+                AST nd1 = visit(ctx.multiplicativeExpression(i-1)); //pega o penultimo valor
+
+                //realiza unificação
+                Type lt = nd1.type.getType();
+                Type rt = node2.type.getType();
+                Unif unif;
+
+                if(op.kind == PLUS_NODE){
+                    unif = lt.unifyPlus(rt);
+                }
+                else {
+                    unif = lt.unifyOtherArith(rt);
+                }
+                if(unif.type == NO_TYPE) typeError(ctx.additiveOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
+                //realiza as conversões
+                nd1 = Conv.createConvNode(unif.lc,nd1);
+                node2 = Conv.createConvNode(unif.rc,node2);
+                //atualiza o nó raiz
+                old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,node2.type.getInner()),nd1,node2);
+            }
+            else { //se não for o ultimo
+            AST nd1 = visit(ctx.multiplicativeExpression(i-1)); //vai pegando o valor anterior
+
+            //Faz a unificação
+            Type lt = nd1.type.getType();   
+            Type rt = old_node2.type.getType();
+            Unif unif;
+
+            if(op.kind == PLUS_NODE){
+                unif = lt.unifyPlus(rt);
+            }
+            else {
+                unif = lt.unifyOtherArith(rt);
+            }
+            if(unif.type == NO_TYPE) typeError(ctx.additiveOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+            //Conversão
+            nd1 = Conv.createConvNode(unif.lc,nd1);
+            old_node2 = Conv.createConvNode(unif.rc,old_node2);
+
+            //Atualiza o nó raiz
+            old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,old_node2.type.getInner()),nd1,old_node2);
+
+            }
+            i--;
+        }
+        return old_node2;
+    } 
+
+    //Operadores +, - 
+
+    @Override
+    public AST visitPlusOp(PlusOpContext ctx){
+        return new AST(PLUS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    @Override
+    public AST visitMinusOp(MinusOpContext ctx){
+        return new AST(MINUS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+
+    //OVER / TIMES / MOD / OVER_INT
+    //Mesmo esquema que o additiveMethod 
+    @Override
+    public AST visitMultiplicativeExpression(MultiplicativeExpressionContext ctx){
+        AST node1 = visit(ctx.unaryExpression(0));
+
+        if(ctx.multiplicativeOperator(0)==null){
+           return node1;
+        }
+        
+        int i = ctx.multiplicativeOperator().size();
+        AST old_node2 = null;
+        while(i>=1){
+            AST op = visit(ctx.multiplicativeOperator(i-1));
+          
+
+            if (i == ctx.multiplicativeOperator().size()){
+                AST node2 = visit(ctx.unaryExpression(i));
+                AST nd1 = visit(ctx.unaryExpression(i-1));
+
+                Type lt = nd1.type.getType();
+                Type rt = node2.type.getType();
+                Unif unif;
+
+                unif = lt.unifyOtherArith(rt);
+
+                if(unif.type == NO_TYPE)typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
+
+                nd1 = Conv.createConvNode(unif.lc,nd1);
+                node2 = Conv.createConvNode(unif.rc,node2);
+
+                old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,node2.type.getInner()),nd1,node2);
+            }
+            else {
+            AST nd1 = visit(ctx.unaryExpression(i-1));
+
+            Type lt = nd1.type.getType();
+            Type rt = old_node2.type.getType();
+            Unif unif;
+
+        
+            unif = lt.unifyOtherArith(rt);
+            
+            if(unif.type == NO_TYPE) typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+
+            nd1 = Conv.createConvNode(unif.lc,nd1);
+            old_node2 = Conv.createConvNode(unif.rc,old_node2);
+
+            old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,old_node2.type.getInner()),nd1,old_node2);
+
+            }
+            i--;
+        }
+        return old_node2;
+    }
+    // *, / , % , ~/
+    @Override
+    public AST visitTimesOp(TimesOpContext ctx){
+        return new AST(TIMES_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    @Override
+    public AST visitOverOp(OverOpContext ctx){
+        return new AST(OVER_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    @Override
+    public AST visitModOp(ModOpContext ctx){
+        return new AST(MOD_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    @Override
+    public AST visitOverIntOp(OverIntOpContext ctx){
+        return new AST(OVER_INT_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
     // Lógicos
     @Override
     public AST visitLogicalOrExpression(LogicalOrExpressionContext ctx){
@@ -734,7 +978,6 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
            
             AST node = visit(ctx.elements());
             node.type.defInner(node.getChild(0).type.getType());
-            AST.printDot(node,vt);
             System.out.println(vt);
             return node;
         

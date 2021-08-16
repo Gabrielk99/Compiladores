@@ -672,18 +672,18 @@ additiveExpression
     |    SUPER (additiveOperator multiplicativeExpression)+
     ;
 additiveOperator
-    :    '+'
-    |    '-'
+    :    '+' #plusOp
+    |    '-' #minusOp
     ;
 multiplicativeExpression
     :    unaryExpression (multiplicativeOperator unaryExpression)*
     |    SUPER (multiplicativeOperator unaryExpression)+
     ;
 multiplicativeOperator
-    :    '*'
-    |    '/'
-    |    '%'
-    |    '~/'
+    :    '*' #timesOp
+    |    '/' #overOp
+    |    '%' #modOp
+    |    '~/' #overIntOp
     ;
 unaryExpression
     :    prefixOperator unaryExpression
@@ -836,15 +836,15 @@ forStatement
     :    AWAIT? FOR '(' forLoopParts ')' statement
     ;
 forLoopParts
-    :    metadata declaredIdentifier IN expression
-    |    metadata identifier IN expression
-    |    forInitializerStatement expression? ';' expressionList?
+    :    metadata declaredIdentifier IN expression #forInOne
+    |    metadata identifier IN expression #forInTwo
+    |    forInitializerStatement expression? ';' expressionList? #forLoop
     ;
 // The localVariableDeclaration cannot be CONST, but that can
 // be enforced in a later phase, and the grammar allows it.
 forInitializerStatement
-    :    localVariableDeclaration
-    |    expression? ';'
+    :    localVariableDeclaration #declaredVariableForParts
+    |    expression? ';' #expForParts
     ;
 whileStatement
     :    WHILE '(' expression ')' statement
