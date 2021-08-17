@@ -4,6 +4,7 @@ void main() {
 	int i = 0;
 	for(i; i<= 10; i+=1,x+=2){
 		x += i;
+		i +=2;
 	}
     // while(x ==0){
     //     x+= 1;
