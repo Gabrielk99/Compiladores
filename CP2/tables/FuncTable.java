@@ -11,22 +11,22 @@ import typing.Inner;
 public final class FuncTable{
     private Hashtable<Key,Entry> table = new Hashtable<Key,Entry> ();
 
-    public boolean lookupVar(String s, int id){
+    public boolean lookupFunc(String s, int id){
         Key aux_key = new Key(s,id);
         return table.containsKey(aux_key);
     }
-    public void addFunc(String s, int line, Inner type, int id_escopo, ArrayList <Type> parameters,boolean bultin){
+    public void addFunc(String s, int line, Inner type, int id_escopo, ArrayList <Inner> parameters,boolean bultin){
         Key key = new Key (s, id_escopo);
         Entry entry = new Entry (s,line,type,id_escopo,parameters,bultin);
         table.put(key,entry);
     }
     //retorna uma lista com os tipos dos parametros (ordenados como se espera pela função)
-    public ArrayList <Type> getParameters(Key k){
+    public ArrayList <Inner> getParameters(Key k){
         return table.get(k).parameters;
     }
 
-    public Type getType(Key k){
-        return table.get(k).type.getType();
+    public Inner getType(Key k){
+        return table.get(k).type;
     }
 
     public int getLine(Key k){
@@ -46,12 +46,23 @@ public final class FuncTable{
 		StringBuilder sb = new StringBuilder();
 		Formatter f = new Formatter(sb);
 		f.format("Functions table:\n");
+
+       
+
 		for (Map.Entry mapElement : table.entrySet()) {
             Key key = (Key)mapElement.getKey();
 
-			f.format("Entry %d -- name: %s, line: %d, type: %s, id_escopo: %d, parameters_type:%s, bultin:%s \n",
-	                 getName(key), getLine(key), getType(key).toString(), 
-                     getIdEscopo(key),Arrays.toString(getParameters(key).toArray()),getBultin(key));
+            String tipos = "";
+
+            tipos = tipos.concat("[ ");
+
+            for(Inner tipo: getParameters(key) ){
+                tipos = tipos.concat(tipo.toString()).concat(" ");
+            }
+            tipos = tipos.concat("]");
+			f.format("Entry %s -- name: %s, line: %d, type: %s, id_escopo: %d, parameters_type:%s, bultin:%s \n",
+	                 key,getName(key), getLine(key), getType(key).toString(), 
+                     getIdEscopo(key),tipos,Boolean.toString(getBultin(key)));
 		}
 		f.close();
 		return sb.toString();
@@ -62,11 +73,11 @@ public final class FuncTable{
 		private final int line;
 		private final Inner type;
         private final int id_escopo;
-        private ArrayList <Type> parameters = new ArrayList <Type> ();      
+        private ArrayList <Inner> parameters = new ArrayList <Inner> ();      
 		private final boolean bultin;
 
 
-		Entry(String name, int line, Inner type, int id_escopo, ArrayList <Type> parameters, boolean bultin) {
+		Entry(String name, int line, Inner type, int id_escopo, ArrayList <Inner> parameters, boolean bultin) {
 			this.name = name;
 			this.line = line;
 			this.type = type;

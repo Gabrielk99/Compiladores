@@ -30,7 +30,7 @@ public enum NodeKind {
         public String toString() {return "global";}
     },
     INSTANCE_VAR_NODE{
-        public String toString() {return "instance var";}
+        public String toString() {return "instance_var";}
     },
     ASSIGN_NODE {
         public String toString() {return "=";}
@@ -136,11 +136,20 @@ public enum NodeKind {
             return "var_decl";
         }
 	},
-    FUNC_DECL_NODE {
+    INSTANCE_FUNCTION_NODE {
 		public String toString() {
-            return "func_decl";
+            return "instance_function";
         }
 	},
+    FUNC_DECL_NODE{
+        public String toString(){return "func_signature";}
+    },
+    FUNCTION_PARAMETER_NODE{
+        public String toString(){return "func_parameters";}
+    },
+    FUNCTION_RETURN_NODE{
+        public String toString(){return "return";}
+    },
     VAR_USE_NODE {
 		public String toString() {
             return "var_use";

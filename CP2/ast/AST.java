@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import tables.VarTable;
+import tables.FuncTable;
 import typing.Type;
 import typing.Inner;
 import tables.Key;
@@ -73,7 +74,7 @@ public class AST {
 	// Estáticas porque só precisamos de uma instância.
 	private static int nr;
 	private static VarTable vt;
-
+	private static FuncTable ft;
 	// Imprime recursivamente a codificação em DOT da subárvore começando no nó atual.
 	// Usa stderr como saída para facilitar o redirecionamento, mas isso é só um hack.
 	private int printNodeDot() {
@@ -83,10 +84,13 @@ public class AST {
 	    if (this.type.getType() != NO_TYPE) {
 	    	System.err.printf("(%s) ", this.type.toString());
 	    }
-	    if (this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE ||
-            this.kind == NodeKind.FUNC_DECL_NODE || this.kind == NodeKind.FUNC_USE_NODE) {
+	    if (this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE ) {
 	    	System.err.printf("%s@", vt.getName(this.key));
-	    } else {
+	    }else if(this.kind == NodeKind.FUNC_DECL_NODE || this.kind == NodeKind.FUNC_USE_NODE) {
+			System.err.printf("%s@",ft.getName(this.key));
+		}
+
+		else {
 	    	System.err.printf("%s", this.kind.toString());
 	    }
 
@@ -98,9 +102,10 @@ public class AST {
 	        } else  if(this.kind == NodeKind.BOOL_VAL_NODE){
                 if(this.intData == 1) System.err.printf("true");
                 else System.err.printf("false");
-            } else if(this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE){
+            } else if(this.kind == NodeKind.VAR_DECL_NODE || this.kind == NodeKind.VAR_USE_NODE||
+            this.kind == NodeKind.FUNC_DECL_NODE || this.kind == NodeKind.FUNC_USE_NODE){
 				System.err.printf("%s", this.key);
-			}
+			} 
 			else {
 	        	System.err.printf("%d", this.intData);
 	        }
@@ -115,9 +120,10 @@ public class AST {
 	}
 
 	// Imprime a árvore toda em stderr.
-	public static void printDot(AST tree, VarTable table) {
+	public static void printDot(AST tree, VarTable table, FuncTable table2) {
 	    nr = 0;
 	    vt = table;
+		ft = table2;
 	    System.err.printf("digraph {\ngraph [ordering=\"out\"];\n");
 	    tree.printNodeDot();
 	    System.err.printf("}\n");

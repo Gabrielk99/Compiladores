@@ -176,7 +176,7 @@ topLevelDefinition
     |    EXTERNAL finalVarOrType identifierList ';' #extId
     |    getterSignature functionBody #getFunc
     |    setterSignature functionBody #setFunc
-    |    functionSignature functionBody #Func
+    |    functionSignature functionBody #FuncTopLevel
     |    (FINAL | CONST) type? staticFinalDeclarationList ';' #finalVarDecl
     |    LATE FINAL type? initializedIdentifierList ';' #lateFinalVarDecl
     |    LATE? varOrType identifier ('=' expression)?  (',' initializedIdentifier)* ';'   #topLevelVarDecl 
@@ -211,12 +211,12 @@ functionBodyPrefix
     |    (ASYNC | ASYNC '*' | SYNC '*')? LBRACE
     ;
 functionBody
-    :    '=>' { startNonAsyncFunction(); } expression { endFunction(); } ';'
-    |    { startNonAsyncFunction(); } block { endFunction(); }
+    :    '=>' { startNonAsyncFunction(); } expression { endFunction(); } ';' #lambdaFunction
+    |    { startNonAsyncFunction(); } block { endFunction(); } #blockFunction
     |    ASYNC '=>'
-         { startAsyncFunction(); } expression { endFunction(); } ';'
-    |    (ASYNC | ASYNC '*' | SYNC '*')
-         { startAsyncFunction(); } block { endFunction(); }
+         { startAsyncFunction(); } expression { endFunction(); } ';'  #lambdaAsyncFunction 
+    |    (ASYNC | ASYNC '*' | SYNC '*') 
+         { startAsyncFunction(); } block { endFunction(); } #blockAsyncFunction
     ;
 block
     :    LBRACE statements RBRACE
@@ -225,10 +225,10 @@ formalParameterPart
     :    typeParameters? formalParameterList
     ;
 formalParameterList
-    :    '(' ')'
-    |    '(' normalFormalParameters ','? ')'
-    |    '(' normalFormalParameters ',' optionalOrNamedFormalParameters ')'
-    |    '(' optionalOrNamedFormalParameters ')'
+    :    '(' ')' #nothingParameters
+    |    '(' normalFormalParameters ','? ')' #normalFormal
+    |    '(' normalFormalParameters ',' optionalOrNamedFormalParameters ')' #normalPlusOptional
+    |    '(' optionalOrNamedFormalParameters ')' #namedOrOptional
     ;
 normalFormalParameters
     :    normalFormalParameter (',' normalFormalParameter)*
@@ -247,17 +247,17 @@ normalFormalParameter
     :    metadata normalFormalParameterNoMetadata
     ;
 normalFormalParameterNoMetadata
-    :    functionFormalParameter
-    |    fieldFormalParameter
-    |    simpleFormalParameter
+    :    functionFormalParameter   #functionParameter
+    |    fieldFormalParameter #fieldParameter
+    |    simpleFormalParameter #simpleParameter
     ;
 // NB: It is an anomaly that a functionFormalParameter cannot be FINAL.
 functionFormalParameter
     :    COVARIANT? type? identifierNotFUNCTION formalParameterPart '?'?
     ;
 simpleFormalParameter
-    :    declaredIdentifier
-    |    COVARIANT? identifier
+    :    declaredIdentifier #declaredIDParameter
+    |    COVARIANT? identifier #covariantIDParameter
     ;
 // NB: It is an anomaly that VAR can be a return type (`var this.x()`).
 fieldFormalParameter

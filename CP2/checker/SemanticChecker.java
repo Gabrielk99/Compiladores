@@ -76,6 +76,18 @@ import parser.DartParser.ForLoopContext;
 import parser.DartParser.DeclaredVariableForPartsContext;
 import parser.DartParser.ExpForPartsContext;
 import parser.DartParser.ExpressionListContext;
+import parser.DartParser.NormalFormalParametersContext;
+import parser.DartParser.FunctionSignatureContext;
+import parser.DartParser.FuncTopLevelContext;
+import parser.DartParser.DeclaredIDParameterContext;
+import parser.DartParser.SimpleParameterContext;
+import parser.DartParser.NormalFormalParameterContext;
+import parser.DartParser.BlockFunctionContext;
+import parser.DartParser.ReturnStatementContext;
+import parser.DartParser.PrimExpressionContext;
+import parser.DartParser.FormalParameterPartContext;
+import parser.DartParser.NothingParametersContext;
+import parser.DartParser.NormalFormalContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -88,7 +100,7 @@ import ast.AST.*;
 import ast.AST;
 
 import java.util.List;
-
+import java.util.ArrayList;
 public class SemanticChecker extends DartBaseVisitor<AST> {
 
 	private StrTable st = new StrTable();   // Tabela de strings.
@@ -98,6 +110,10 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     Inner lastType; //Variável global com o último tipo declarado
     Token lastVar; //Variável global com o token da ultima variável declarada
 
+    ArrayList <Inner> lastParameters = new ArrayList<Inner>(); //Variável global para armazenar os tipos dos argumentos das funções
+    String lastFuncion; //Variável global para armazenar o nome da ultima função (para buscar na etapa de retorno)
+                        // isso é usado para verificar se o retorno é valido pelo tipo da função
+    
     AST root; //Nó raiz da AST
 
     int id_escopo_atual = 0;
@@ -125,11 +141,15 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         Key k = new Key(name,aux_tree.getIdEscopo());
         return new AST(VAR_USE_NODE,k,vt.getType(k));
     }
+    // Checa se o uso da função está correto
 
     //Adiciona uma nova variável na tabela e retorna um nó de VAR_DECL
     AST newVar(Token token) {
         String lastVarName = token.getText();
     	int line = token.getLine();
+
+        System.out.println(lastVarName);
+        System.out.println(id_escopo_atual);
 
         Key k = new Key(lastVarName, id_escopo_atual); // Vai ser usada pra ast tambem
 
@@ -142,7 +162,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         }
         //Erro caso declara variável com um tipo não aceito
         if(lastType.getType() == NO_TYPE){
-            System.out.printf("SEMANTIC ERROR (%d): incompatible type for var declaration '%s'\n",line,lastVarName);
+            System.err.printf("SEMANTIC ERROR (%d): incompatible type for var declaration '%s'\n",line,lastVarName);
             System.exit(1);
             return null;
         }
@@ -150,16 +170,42 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node = new AST (VAR_DECL_NODE,k,vt.getType(k));
         return node;
     }
+    //Adiciona uma nova função na tabela e retorna um nó FUNC_SIGNATURE
+    AST newFunction(Token token, boolean bultin, ArrayList<Inner>parameters){
+        String lastFunctionName = token.getText();
+        int line = token.getLine();
+
+        Key k = new Key(lastFunctionName, id_escopo_atual);
+
+        if(ft.lookupFunc(lastFunctionName,id_escopo_atual)){
+            System.err.printf("SEMANTIC ERROR (%d): function '%s' already declared at line %d.\n", 
+            line,lastFunctionName,ft.getLine(k));
+
+            System.exit(1);
+            return null;
+        }
+
+        if(lastType.getType()==NO_TYPE){
+            System.err.printf("SEMANTIC ERROR (%d): incompatible type for function delcaration '%s'\n",
+            line, lastFunctionName);
+            System.exit(1);
+            return null;
+        }
+
+        ft.addFunc(lastFunctionName, line, lastType, id_escopo_atual, parameters,bultin);
+        AST node = new AST (FUNC_DECL_NODE,k,ft.getType(k));
+        return node;
+    }
     
     private static void typeError (int line, String op, Inner t1, Inner t2){
-        System.out.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
+        System.err.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
     			line, op, t1.toString(), t2.toString());
     	System.exit(1);
     }
 
     private static void checkBoolExpr(int lineNo, String cmd, Inner t) {
         if (t.getType() != BOOL_TYPE) {
-            System.out.printf("SEMANTIC ERROR (%d): conditional expression in '%s' is '%s' instead of '%s'.\n",
+            System.err.printf("SEMANTIC ERROR (%d): conditional expression in '%s' is '%s' instead of '%s'.\n",
                     lineNo, cmd, t.toString(), BOOL_TYPE.toString());
             System.exit(1);
         }
@@ -391,6 +437,155 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
         
     }
+    //Regra de declaração de função no nível global
+    @Override
+    public AST visitFuncTopLevel(FuncTopLevelContext ctx){
+        AST node1 = visit(ctx.functionSignature()); //pega a assinatura tipo nome e parametros
+        AST node2 = visit(ctx.functionBody()); //pega o corpo da função
+
+        List <AST> children = node1.getChildren(); //é passado um nó block fake para pegar func_signature_node
+                                                //e func_parameters_node
+
+        AST root = new AST (INSTANCE_FUNCTION_NODE, 0 ,new Inner(NO_TYPE,NO_TYPE));
+        for(AST child : children){
+            System.out.println(child.kind);
+            root.addChild(child);
+        }
+
+        root.addChild(node2);
+        
+        lastParameters = new ArrayList <Inner> ();
+
+        return root;
+    }
+    //Assinatura da função
+    @Override
+    public AST visitFunctionSignature(FunctionSignatureContext ctx){
+        if(ctx.type()!=null) visit(ctx.type());
+        visit(ctx.identifierNotFUNCTION());
+        AST node2 = visit(ctx.formalParameterPart());
+        AST node1 = newFunction(lastVar,false,lastParameters);
+
+        lastFuncion = lastVar.getText();
+        
+        return AST.newSubtree(BLOCK_NODE,new Inner(NO_TYPE,NO_TYPE),node1,node2);//apenas para juntar na declaração    
+    }
+    //Parametros
+    @Override //função raiz que chama os parametros
+    public AST visitFormalParameterPart(FormalParameterPartContext ctx){
+        if(ctx.typeParameters()!=null) visit(ctx.typeParameters());
+        return visit(ctx.formalParameterList());
+    }
+    @Override// #nothingParameters "type name_function () {} "
+    public AST visitNothingParameters(NothingParametersContext ctx){
+        return new AST(FUNCTION_PARAMETER_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+    }
+    @Override // #normalFormal parametros normais "type name_function (int x, int y) {} "
+    public AST visitNormalFormal(NormalFormalContext ctx){
+        return visit(ctx.normalFormalParameters());
+    }
+    @Override //deriva os parametros formais normais 
+    public AST visitNormalFormalParameters(NormalFormalParametersContext ctx){
+        Inner typeOfFunction = lastType;//salvando o tipo da função
+        Token lastNameFunction = lastVar; //salvando o nome da função
+
+        AST rt = new AST (FUNCTION_PARAMETER_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+        
+        
+        
+        int old_id_escopo = id_escopo_atual; //salvando o escopo atual
+
+
+        id_escopo_atual = id_escopo_counter+1; //gerando o prox escopo forçado para os parametros
+
+        scopeTree = scopeTree.addChild(id_escopo_atual);
+        
+        int i = 0;
+        while(ctx.normalFormalParameter(i)!=null){
+            AST node = visit(ctx.normalFormalParameter(i++));
+            rt.addChild(node); //adicionando os parametros na tabela e como filhos
+            lastParameters.add(lastType); //adicionando os tipos dos parametros
+        }
+
+
+        id_escopo_atual = old_id_escopo; //retornando o escopo atual
+        scopeTree = scopeTree.getPai(); //retortando a arvore de escopo
+
+        lastType = typeOfFunction; //retornando o tipo da função
+        lastVar = lastNameFunction; //retornando o nome da função
+
+        return rt;
+    }
+    //Sobrescrevendo normalFormalParameter para passar AST de newvar
+    @Override
+    public AST visitNormalFormalParameter(NormalFormalParameterContext ctx){
+        return visit(ctx.normalFormalParameterNoMetadata());
+    }
+    //Sobrescrevendo simpleFormalParameter #simpleParameter
+    @Override
+    public AST visitSimpleParameter(SimpleParameterContext ctx){
+        return visit(ctx.simpleFormalParameter());
+    }
+    //Sobrescrevendo simplerFormalParameter : declaredIdentifier #declaredIDParameter
+    @Override
+    public AST visitDeclaredIDParameter(DeclaredIDParameterContext ctx){
+        return visit(ctx.declaredIdentifier());
+    }
+    //Pegando o corpo da função
+    @Override
+    public AST visitBlockFunction(BlockFunctionContext ctx){
+        AST node =  visit(ctx.block());
+        return node;
+    }
+    //Pegando retorno
+    @Override
+    public AST visitReturnStatement(ReturnStatementContext ctx){
+        AST retorno = new AST(FUNCTION_RETURN_NODE,0,new Inner(NO_TYPE,NO_TYPE)); 
+
+        Key k = new Key (lastFuncion,id_escopo_atual-1); //pegando a chave para verificar questões de tipo de retorno
+        
+        if(ctx.expression()==null && ft.getType(k).getType()!=VOID_TYPE){ //retornos sem expressão só é permitido em void function
+            System.err.printf("SEMANTIC ERROR (%d): return with not type just can used in void type function and type is '%s' from function '%s' \n",
+            ctx.getStart().getLine(), ft.getType(k), lastFuncion
+            );
+            System.exit(1);
+            return null;
+        }
+
+        if(ctx.expression()!=null) {
+         
+            AST child = visit(ctx.expression());
+
+            if(child.type.getType() == INT_TYPE && ft.getType(k).getType()==DOUBLE_TYPE){ //se o tipo de retorno for int 
+                                                                                    //mas o tipo da função for double, convertemos o retorno
+
+                AST conv = Conv.createConvNode(I2D,child);
+                retorno.addChild(conv);
+
+            }
+            
+            else retorno.addChild(child);
+
+            if(retorno.getChild(0).type.getType() != ft.getType(k).getType()) { //retornos devem ser do mesmo tipo da função
+                System.err.printf("SEMANTIC ERROR (%d): return type '%s' is invalid to '%s' type from function '%s' \n",
+                ctx.expression().getStart().getLine(), retorno.getChild(0).type.getType(), ft.getType(k), lastFuncion
+                );
+                System.exit(1);
+                return null;
+            } 
+        
+        
+        }
+        
+
+        return retorno;
+    }
+    //(expression) #primExpression
+    @Override
+    public AST visitPrimExpression(PrimExpressionContext ctx){
+        return visit(ctx.expression());
+    }
+
     // -------------------------- Declaracao local ----------------
     //Regra de declaração de varável local
     @Override
@@ -533,6 +728,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     //For (parameters)
     @Override
     public AST visitForLoop(ForLoopContext ctx){
+
+        int old_id_escopo = id_escopo_atual; //salvando escopo atual
+
         id_escopo_atual = id_escopo_counter+1; //apenas forçando que o parametro do for caso seja declarado
                         //dentro do () seja do escopo interno do for
         scopeTree = scopeTree.addChild(id_escopo_atual);
@@ -544,7 +742,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if(ctx.expressionList()!=null) child3 = visit(ctx.expressionList());
         
         scopeTree = scopeTree.getPai();
-        id_escopo_atual--; //retornando ao escopo atual correto
+        id_escopo_atual = old_id_escopo; //retornando ao escopo atual correto
         if(child2!=null && child3!=null) {
             
             AST rt = AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
@@ -959,7 +1157,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             if(i == 1 ) startType = node.type.getType();
             else {
                 if (startType!=node.type.getType()){
-                    System.out.printf("SEMANTIC ERROR (%d) - Is not possible use a list values with diferent type of values\n",
+                    System.err.printf("SEMANTIC ERROR (%d) - Is not possible use a list values with diferent type of values\n",
                     ctx.element(i-1).getStart().getLine());
                     System.exit(1);
                 }
@@ -996,6 +1194,6 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         System.out.print("\n\n");
     }
 void printAST(){
-    AST.printDot(root,vt);
+    AST.printDot(root,vt,ft);
 }
 }
