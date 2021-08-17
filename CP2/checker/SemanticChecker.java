@@ -111,24 +111,18 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         int line = token.getLine();
 
         Tree aux_tree = scopeTree;
-        int aux_id = aux_tree.getIdEscopo();
 
-        
-
-        while(aux_tree != null && !vt.lookupVar(name,aux_id)){ //Busca nos escopos externos
+        while(aux_tree != null && !vt.lookupVar(name,aux_tree.getIdEscopo())) //Busca nos escopos externos
             aux_tree = aux_tree.getPai();
-            if(aux_tree!=null) aux_id = aux_tree.getIdEscopo();
-        }
 
         if(aux_tree == null){  // Se nao encontrar
-            System.out.println("opa");
             System.err.printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n", line, name);
 
             System.exit(1);//Aborta o compilador caso haja erro de semantica
             return null; //Nunca executa
         }
 
-        Key k = new Key(name,aux_id);
+        Key k = new Key(name,aux_tree.getIdEscopo());
         return new AST(VAR_USE_NODE,k,vt.getType(k));
     }
 
@@ -156,6 +150,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node = new AST (VAR_DECL_NODE,k,vt.getType(k));
         return node;
     }
+    
     private static void typeError (int line, String op, Inner t1, Inner t2){
         System.out.printf("SEMANTIC ERROR (%d): incompatible types for operator '%s', LHS is '%s' and RHS is '%s'.\n",
     			line, op, t1.toString(), t2.toString());
@@ -514,13 +509,19 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         AST whileNode = visit(ctx.statement());
 
-        return AST.newSubtree(WHILE_NODE, new Inner(NO_TYPE, NO_TYPE), whileNode, exprNode);
+        return AST.newSubtree(WHILE_NODE, new Inner(NO_TYPE, NO_TYPE), exprNode, whileNode);
     }
 
-    /*@Override
+    @Override
     public AST visitDoStatement(DoStatementContext ctx){
+        // Analisa expressao booleana
+        AST exprNode = visit(ctx.expression());
+        checkBoolExpr(ctx.WHILE().getSymbol().getLine(), "do-while", exprNode.type);
 
-    }*/
+        AST doWhileNode = visit(ctx.statement());
+
+        return AST.newSubtree(DO_WHILE_NODE, new Inner(NO_TYPE, NO_TYPE), doWhileNode, exprNode);
+    }
     
     // --------------------- FOR ----------------------------
     @Override
@@ -826,7 +827,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         Unif unif = lt.unifyEquals(rt);
 
         if (unif.type == NO_TYPE)
-            typeError(434374838, operator, child1.type, child2.type); // Como pegar a linha???
+            typeError(ctx.equalityOperator().getStart().getLine(), operator, child1.type, child2.type);
 
         return AST.newSubtree(equalityNode, new Inner(unif.type,NO_TYPE), child1, child2);
     }

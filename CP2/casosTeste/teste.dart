@@ -1,10 +1,18 @@
 String b;
 double x = 1.8;
 void main() {
-	int i = 0;
-	for(i; i<= 10; i+=1,x+=2){
+	/*for(int i; i<= 10; i+=1,x+=2){
 		x += i;
-	}
+		int m = 2;
+	}*/
+	void batata;	
+	do{
+		String m = "oi";
+		x += 1.3;
+		if(m == "a")
+			String m = "b";
+	}while(x == 2);
+
     // while(x ==0){
     //     x+= 1;
     //     if(x == 2)
