@@ -28,7 +28,11 @@ public class Inner {
     public Type getInner(){
         return this.inner;
     }
-
+    @Override
+    public boolean equals (Object obj){
+        Inner type = (Inner) obj;
+        return (type.getType() == getType()) && (type.getInner() == getInner());
+    }
     public String toString(){
         if(this.type==LIST_TYPE){
             return this.inner.toString() + this.type.toString();

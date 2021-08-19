@@ -6,6 +6,7 @@ import java.util.Formatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import typing.Type;
+import static typing.Type.NO_TYPE;
 import typing.Inner;
 
 public final class FuncTable{
@@ -22,26 +23,39 @@ public final class FuncTable{
     }
     //retorna uma lista com os tipos dos parametros (ordenados como se espera pela função)
     public ArrayList <Inner> getParameters(Key k){
-        return table.get(k).parameters;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).parameters;
+        else return new ArrayList<Inner> ();
     }
 
     public Inner getType(Key k){
-        return table.get(k).type;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).type;
+        else return new Inner(NO_TYPE,NO_TYPE);
     }
 
     public int getLine(Key k){
-        return table.get(k).line;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).line;
+        else return -1;
     }
 
     public String getName (Key k){
-        return table.get(k).name;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).name;
+        else return "";
     }
     public int getIdEscopo (Key k){
-        return table.get(k).id_escopo;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).id_escopo;
+        else return -1;
     }
     public boolean getBultin(Key k){
-        return table.get(k).bultin;
+        if(lookupFunc(k.getName(),k.getId()))
+            return table.get(k).bultin;
+        else return false;
     }
+
     public String toString() {
 		StringBuilder sb = new StringBuilder();
 		Formatter f = new Formatter(sb);
@@ -52,17 +66,10 @@ public final class FuncTable{
 		for (Map.Entry mapElement : table.entrySet()) {
             Key key = (Key)mapElement.getKey();
 
-            String tipos = "";
-
-            tipos = tipos.concat("[ ");
-
-            for(Inner tipo: getParameters(key) ){
-                tipos = tipos.concat(tipo.toString()).concat(" ");
-            }
-            tipos = tipos.concat("]");
+        
 			f.format("Entry %s -- name: %s, line: %d, type: %s, id_escopo: %d, parameters_type:%s, bultin:%s \n",
 	                 key,getName(key), getLine(key), getType(key).toString(), 
-                     getIdEscopo(key),tipos,Boolean.toString(getBultin(key)));
+                     getIdEscopo(key),getParameters(key),Boolean.toString(getBultin(key)));
 		}
 		f.close();
 		return sb.toString();

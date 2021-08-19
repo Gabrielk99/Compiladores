@@ -1,14 +1,14 @@
 String b;
-double x = 1.8;
-double media(int x, int y){
+double x = 1;
+double media(double x, double y){
 	return 2;
 }
 void main() {
-	/*for(int i; i<= 10; i+=1,x+=2){
-		x += i;
-		int m = 2;
-	}*/
-	x = (1.9+2)/2;
+	// for(int i; i<= 10; i+=1,x+=2){
+	// 	x += i;
+	// 	int m = 2;
+	// }
+	//x = media(1,1);
 	// void batata;	
 	// do{
 	// 	String m = "oi";

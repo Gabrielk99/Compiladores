@@ -566,8 +566,8 @@ arguments
     :    '(' (argumentList ','?)? ')'
     ;
 argumentList
-    :    namedArgument (',' namedArgument)*
-    |    expressionList (',' namedArgument)*
+    :    namedArgument (',' namedArgument)* #justNamedArguments
+    |    expressionList (',' namedArgument)* #expressionArguments
     ;
 namedArgument
     :    label expression
@@ -710,17 +710,17 @@ awaitExpression
     :    AWAIT unaryExpression
     ;
 postfixExpression
-    :    assignableExpression postfixOperator
-    |    primary selector*
+    :    assignableExpression postfixOperator #assignableExpPostfix
+    |    primary selector* #identifierSelector
     ;
 postfixOperator
     :    incrementOperator
     ;
 selector
-    :    '!'
-    |    assignableSelector
-    |    argumentPart
-    |    typeArguments
+    :    '!' #negationSelector
+    |    assignableSelector #assignSelector 
+    |    argumentPart #argumentPartSelector
+    |    typeArguments #typeArgumentSelector
     ;
 argumentPart
     :    typeArguments? arguments
@@ -738,8 +738,8 @@ assignableSelectorPart //?
     :    selector* assignableSelector
     ;
 unconditionalAssignableSelector
-    :    '[' expression ']'
-    |    '.' identifier
+    :    '[' expression ']' #vectorAcess
+    |    '.' identifier #dotAcess
     ;
 assignableSelector
     :    unconditionalAssignableSelector

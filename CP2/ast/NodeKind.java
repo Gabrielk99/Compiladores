@@ -160,6 +160,9 @@ public enum NodeKind {
             return "func_use";
         }
     },
+    FUNC_USE_ARGUMENTS_NODE{
+        public String toString(){return "arguments_func_use";}
+    },
     LIST_VAL_NODE{
         public String toString(){
             return "list val";
