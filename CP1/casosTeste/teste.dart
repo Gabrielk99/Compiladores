@@ -4,6 +4,9 @@ int media(int x, int y){
 	return 2;
 }
 void main() {
-	x = media(1,2);
+	int media(int x, int y){
+		return (x+y)/2;
+	}
+	x = media(1,1.1);
 }
 void a = main();

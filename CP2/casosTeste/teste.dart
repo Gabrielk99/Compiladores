@@ -8,7 +8,11 @@ void main() {
 	// 	x += i;
 	// 	int m = 2;
 	// }
-	//x = media(1,1);
+	List <int> a = [1,2,3];
+	int media(int x, int y){
+		return (x+y)/2;
+	}
+	x = a[2];
 	// void batata;	
 	// do{
 	// 	String m = "oi";

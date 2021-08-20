@@ -160,8 +160,12 @@ public enum NodeKind {
             return "func_use";
         }
     },
-    FUNC_USE_ARGUMENTS_NODE{
+    FUNC_USE_ARGUMENTS_NODE{ //usado apenas para auxiliar na hora de diferenciar função de lista
+                            //regra raiz gera o uso de função e lista
         public String toString(){return "arguments_func_use";}
+    },
+    LIST_USE{ //O mesmo que a cima, mas para uso de listas
+        public String toString(){return "list_use";}
     },
     LIST_VAL_NODE{
         public String toString(){

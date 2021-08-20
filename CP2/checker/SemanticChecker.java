@@ -93,6 +93,8 @@ import parser.DartParser.ArgumentsContext;
 import parser.DartParser.ExpressionArgumentsContext;
 import parser.DartParser.ArgumentPartContext;
 import parser.DartParser.IdentifierSelectorContext;
+import parser.DartParser.LocalFunctionDeclarationContext;
+import parser.DartParser.VectorAcessContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -115,7 +117,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     Inner lastType; //Variável global com o último tipo declarado
     Token lastVar; //Variável global com o token da ultima variável declarada
 
-    ArrayList <Inner> lastParameters = new ArrayList<Inner>(); //Variável global para armazenar os tipos dos argumentos das funções
+    ArrayList <Inner> lastParameters ; //Variável global para armazenar os tipos dos argumentos das funções
     String lastFuncion; //Variável global para armazenar o nome da ultima função (para buscar na etapa de retorno)
                         // isso é usado para verificar se o retorno é valido pelo tipo da função
     
@@ -236,11 +238,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     AST newFunction(Token token, boolean bultin){
         String lastFunctionName = token.getText();
         int line = token.getLine();
-        ArrayList <Inner> parameters = new ArrayList <Inner> (); //cria um novo objeto para diferenciar as referencias
-
-        for(Inner type : lastParameters){
-            parameters.add(type);
-        } //preenche a lista com os devidos tipos esperados
+        ArrayList <Inner> parameters = new ArrayList <Inner> (lastParameters); //cria um novo objeto para diferenciar as referencias
 
         Key k = new Key(lastFunctionName, id_escopo_atual);
 
@@ -701,6 +699,24 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         return node;
     }
+    // -------------------- Declaração local de função -------------
+    @Override
+    public AST visitLocalFunctionDeclaration(LocalFunctionDeclarationContext ctx){
+
+        AST child1 = visit(ctx.functionSignature());
+        AST child2 = visit(ctx.functionBody());
+
+        AST rt = new AST(INSTANCE_FUNCTION_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+
+        List <AST> children = child1.getChildren();
+
+        for(AST child:children){
+            rt.addChild(child);
+        }
+        rt.addChild(child2);
+
+        return rt;
+    }
     // ------------------- Uso de variáveis ----------------
     // todas variáveis usadas aciona a chamada --> primary : identifier #primIdentifier
     public AST visitPrimIdentifier(PrimIdentifierContext ctx){
@@ -708,7 +724,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         return null;
     } // incorporado logo abaixo pois tanto funções e variáveis são chamadas pela mesma raiz
-    // ------------------- Uso de funções/Lista/Variáveis -----------------
+    // ------------------- Uso de funções/Lista/Variáveis/primary (expressões etc) -----------------
     public AST visitIdentifierSelector(IdentifierSelectorContext ctx){
         AST verify = visit(ctx.primary());
         int i = 0;
@@ -734,12 +750,21 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         }
 
         if(ctx.selector()!=null && ctx.selector().size()==1){ //verifico se existe um selector
+            Token lastFunc = lastVar;
             AST node = visit(ctx.selector(0));
             if(node.kind==FUNC_USE_ARGUMENTS_NODE){ //e se ele é chamada de função
-                AST rt = checkFunc(lastVar,lastParameters,node); //cria o no de uso de função checando os parametros
+                AST rt = checkFunc(lastFunc,lastParameters,node); //cria o no de uso de função checando os parametros
                 
-                lastParameters = new ArrayList<Inner>();
-                
+                return rt;
+            }
+            else if(node.kind==LIST_USE){
+                AST rt = checkVar(lastVar);
+                if(rt.type.getType()!=LIST_TYPE){
+                    System.err.printf("SEMANTIC ERROR (%d): the variable '%s' is not a List\n",
+                    ctx.getStart().getLine(),vt.getName(rt.key));
+                    System.exit(1);
+                }
+                rt.addChild(node.getChild(0));
                 return rt;
             }
         }
@@ -757,13 +782,15 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                                             // é um nó falso para manusear
         
         AST argumentList = new AST(FUNC_USE_ARGUMENTS_NODE,0,new Inner(NO_TYPE,NO_TYPE)); //cria o nó de argumentos
-        
+       lastParameters = new ArrayList<Inner>();
         if (node != null){ //se não houver argumentos é nulo
             List<AST> children = node.getChildren(); 
 
             for(AST child:children){
                 argumentList.addChild(child); //adiciona os arguemntos
-                lastParameters.add(child.type);//adiciona os tipos dos argumentos para verificar o uso
+                if(child.getChildren().size()==1)
+                    lastParameters.add(new Inner(child.type.getInner(),NO_TYPE));//adiciona os tipos dos argumentos para verificar o uso
+                else lastParameters.add(child.type);
             }
         }
         return argumentList;
@@ -791,7 +818,13 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         return visit(ctx.expressionList());
     }
 
-
+    //---------------------- USO DE LISTA ----------------
+    @Override 
+    public AST visitVectorAcess(VectorAcessContext ctx){
+        AST rt = new AST(LIST_USE,0, new Inner(NO_TYPE,NO_TYPE));
+        rt.addChild(visit(ctx.expression()));
+        return rt;
+    }
 
 
 
