@@ -11,7 +11,7 @@ import typing.Inner;
 
 public final class FuncTable{
     private Hashtable<Key,Entry> table = new Hashtable<Key,Entry> ();
-
+    
     public boolean lookupFunc(String s, int id){
         Key aux_key = new Key(s,id);
         return table.containsKey(aux_key);

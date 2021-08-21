@@ -114,6 +114,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     private VarTable vt = new VarTable();   // Tabela de variáveis.
     private FuncTable ft = new FuncTable(); // Tabela de funcoes.
 
+    //Adicionando as funções bultin de leitura e impressão de dados
+    void addBultin(){
+        ft.addFunc("print",0,new Inner(STR_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
+        ft.addFunc("readLine",0,new Inner(STR_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
+    }
+
     Inner lastType; //Variável global com o último tipo declarado
     Token lastVar; //Variável global com o token da ultima variável declarada
 
@@ -179,7 +185,15 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST rt = new AST(FUNC_USE_NODE,k,ft.getType(k));
 
         ArrayList <Inner> parametersOfFunction = ft.getParameters(k);
-
+        if(name.equals("print")){
+            if(parametros.getChildren().size()==1)
+                rt.addChild(parametros.getChild(0));
+            else {
+                System.err.printf("SEMANTIC ERROR (%d): Expected just one argument\n",line);
+                System.exit(1);
+            }
+            return rt;
+        }
         if(parametersOfFunction.size()!=parameters.size()) { //se o tamanho não é igual então já ta errado
              System.err.printf("SEMANTIC ERROR(%d): Arguments types is incorrect, types passaed is '%s', types waited is '%s'.\n",
                 line,parameters, ft.getParameters(k));
@@ -242,7 +256,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         Key k = new Key(lastFunctionName, id_escopo_atual);
 
-        if(ft.lookupFunc(lastFunctionName,id_escopo_atual)){
+        if(ft.lookupFunc(lastFunctionName,id_escopo_atual) || lastFunctionName.equals("print") || lastFunctionName.equals("readLine")){
             System.err.printf("SEMANTIC ERROR (%d): function '%s' already declared at line %d.\n", 
             line,lastFunctionName,ft.getLine(k));
 
@@ -315,6 +329,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             visit(ctx.typeArguments());
             Inner listType = new Inner(LIST_TYPE,NO_TYPE);
             listType.defInner(lastType.getType());
+            if(listType.equals(new Inner(LIST_TYPE,LIST_TYPE))){
+                System.err.printf("SEMANTIC ERROR(%d): List can be declared just with one dimension\n",
+                ctx.getStart().getLine());
+                System.exit(1);
+            }
             lastType = listType;
         }
         return null;
@@ -351,18 +370,21 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     }
     //Verifica se a operação = está correta
     private static AST checkAssign(int line, AST l, AST r){
+
         Inner lt = l.type;
         Inner rt = r.type;
 
         if(lt.getType() == BOOL_TYPE && rt.getType()!= BOOL_TYPE) typeError(line,"=",lt,rt);
         if(lt.getType() == STR_TYPE && rt.getType()!= STR_TYPE) typeError(line,"=",lt,rt);
         if(lt.getType() == INT_TYPE && rt.getType()!= INT_TYPE) typeError(line,"=",lt,rt);
+        if(lt.getType() == VOID_TYPE && rt.getType()!= VOID_TYPE) typeError(line,"=",lt,rt);
         if(lt.getType() == LIST_TYPE){
             if(rt.getType() == LIST_TYPE){ 
                 if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
                 if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
                 if(lt.getInner() == INT_TYPE && (rt.getInner()!=INT_TYPE && rt.getInner()!=NO_TYPE)) typeError(line,"=",lt,rt);
                 if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == VOID_TYPE && rt.getInner()!=VOID_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
             }
             else if(rt.getType() != LIST_TYPE){
                 typeError(line,"=",lt,rt);
@@ -497,7 +519,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         if (ctx.expression() != null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
+            AST check = checkAssign(ctx.getStart().getLine(),node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
         }
         
         return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
@@ -674,7 +697,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         if(ctx.expression()!=null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
+            AST check = checkAssign(ctx.getStart().getLine(),node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
         }
        
         return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
@@ -737,7 +761,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 ctx.getStart().getLine());
                 System.exit(1);
             }
-            else if(false){
+            else if(node.kind==LIST_USE){
                 System.err.printf("SEMANTIC ERROR (%d): List is just one dimension, this mean, use 'name_var[index];'\n",
                 ctx.getStart().getLine());
                 System.exit(1);
@@ -764,7 +788,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                     ctx.getStart().getLine(),vt.getName(rt.key));
                     System.exit(1);
                 }
+                rt = new AST(rt.kind,rt.key,new Inner(rt.type.getInner(),NO_TYPE));
                 rt.addChild(node.getChild(0));
+
                 return rt;
             }
         }
@@ -788,9 +814,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
             for(AST child:children){
                 argumentList.addChild(child); //adiciona os arguemntos
-                if(child.getChildren().size()==1)
-                    lastParameters.add(new Inner(child.type.getInner(),NO_TYPE));//adiciona os tipos dos argumentos para verificar o uso
-                else lastParameters.add(child.type);
+                lastParameters.add(child.type);
             }
         }
         return argumentList;
@@ -910,7 +934,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitForStatement(ForStatementContext ctx){
         AST child1 = visit(ctx.forLoopParts());
         AST child2 = visit(ctx.statement());
+        if(child2==null)
+            return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
+            
         return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
+       
     }
     //For (parameters)
     @Override
@@ -1364,6 +1392,12 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
            
             AST node = visit(ctx.elements());
             node.type.defInner(node.getChild(0).type.getType());
+
+            if(node.type.equals(new Inner(LIST_TYPE,LIST_TYPE))){
+                System.err.printf("SEMANTIC ERROR (%d): Is not possible use List of more one dimension\n",
+                ctx.getStart().getLine());
+                System.exit(1);
+            }
 
             return node;
         

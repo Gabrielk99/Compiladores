@@ -28,7 +28,7 @@ public class Main {
     }
 
     SemanticChecker checker = new SemanticChecker();
-
+    checker.addBultin();
     checker.visit(tree);
     checker.printTables();
     checker.printAST();
