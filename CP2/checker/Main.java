@@ -12,25 +12,29 @@ import parser.DartLexer;
 public class Main {
     public static void main(String[] args) throws IOException {
     
-    CharStream input = CharStreams.fromFileName(args[0]);
+        CharStream input = CharStreams.fromFileName(args[0]);
 
-    DartLexer lexer = new DartLexer(input);
+        DartLexer lexer = new DartLexer(input);
 
-    CommonTokenStream tokens = new CommonTokenStream (lexer);
+        CommonTokenStream tokens = new CommonTokenStream (lexer);
 
-    DartParser parser = new DartParser(tokens);
+        DartParser parser = new DartParser(tokens);
 
-    ParseTree tree = parser.libraryDefinition();
+        ParseTree tree = parser.libraryDefinition();
 
-    if(parser.getNumberOfSyntaxErrors() != 0){
+        if(parser.getNumberOfSyntaxErrors() != 0)
+            return;
 
-        return;
-    }
+        SemanticChecker checker = new SemanticChecker();
+        checker.addBultin();
+        checker.visit(tree);
 
-    SemanticChecker checker = new SemanticChecker();
-    checker.addBultin();
-    checker.visit(tree);
-    checker.printTables();
-    checker.printAST();
+        if (!checker.findMain()) {
+            System.err.printf("SEMANTIC ERROR: No 'main' method found.\n");
+            return;
+        }
+
+        checker.printTables();
+        checker.printAST();
     }
 }

@@ -171,7 +171,23 @@ public enum NodeKind {
         public String toString(){
             return "list val";
         }
-	};
+	},
+    PLUS_POST_INCR_VAL_NODE{
+        public String toString(){ return "post_++"; }
+    },
+    MINUS_POST_INCR_VAL_NODE{
+        public String toString(){ return "post_--"; }
+    },
+    PLUS_PRE_INCR_VAL_NODE{
+        public String toString(){ return "pre_++"; }
+    },
+    MINUS_PRE_INCR_VAL_NODE{
+        public String toString(){ return "pre_--"; }
+    },
+    NOT_NODE{
+        public String toString(){ return "!"; }
+    };
+
 
     public static boolean hasData(NodeKind kind) {
 		switch(kind) {

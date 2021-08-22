@@ -95,6 +95,9 @@ import parser.DartParser.ArgumentPartContext;
 import parser.DartParser.IdentifierSelectorContext;
 import parser.DartParser.LocalFunctionDeclarationContext;
 import parser.DartParser.VectorAcessContext;
+import parser.DartParser.AssignableExpPostfixContext;
+import parser.DartParser.PrefixUnaryExpressionContext;
+import parser.DartParser.NotMinusUnaryExpressionContext;
 
 import tables.StrTable;
 import tables.VarTable;
@@ -108,6 +111,7 @@ import ast.AST;
 
 import java.util.List;
 import java.util.ArrayList;
+
 public class SemanticChecker extends DartBaseVisitor<AST> {
 
 	private StrTable st = new StrTable();   // Tabela de strings.
@@ -892,6 +896,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         // O primeiro statement é o do then
         AST thenNode = visit(ctx.statement(0));
+        if (thenNode == null) return AST.newSubtree(IF_NODE, new Inner(NO_TYPE,NO_TYPE), exprNode);
 
         AST subTreeIFNode;
         //O segundo statement, se existir, é do else
@@ -914,6 +919,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         checkBoolExpr(ctx.WHILE().getSymbol().getLine(), "while", exprNode.type);
 
         AST whileNode = visit(ctx.statement());
+        if (whileNode == null) return AST.newSubtree(WHILE_NODE, new Inner(NO_TYPE,NO_TYPE), exprNode);
 
         return AST.newSubtree(WHILE_NODE, new Inner(NO_TYPE, NO_TYPE), exprNode, whileNode);
     }
@@ -1163,6 +1169,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     public AST visitOverIntOp(OverIntOpContext ctx){
         return new AST(OVER_INT_NODE,0,new Inner(NO_TYPE,NO_TYPE));
     }
+
     // Lógicos
     @Override
     public AST visitLogicalOrExpression(LogicalOrExpressionContext ctx){
@@ -1183,7 +1190,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             Unif unif = lt.unifyBooleans(rt);
 
             if (unif.type == NO_TYPE)       // Verifica se a expressao anterior OU a expressao atual geram bool
-                typeError(434374838, "||", child.type, lastChild.type); // Como pegar a linha???
+                typeError(ctx.getStart().getLine(), "||", lastChild.type, child.type);
 
             orNode.addChild(child);
             lastChild = child;
@@ -1210,7 +1217,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             Unif unif = lt.unifyBooleans(rt);
 
             if (unif.type == NO_TYPE)       // Verifica se a expressao anterior E a expressao atual geram bool
-                typeError(434374838, "&&", child.type, lastChild.type); // Como pegar a linha???
+                typeError(ctx.getStart().getLine(), "&&", lastChild.type, child.type);
 
             andNode.addChild(child);
             lastChild = child;
@@ -1240,7 +1247,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         Unif unif = lt.unifyEquals(rt);
 
         if (unif.type == NO_TYPE)
-            typeError(ctx.equalityOperator().getStart().getLine(), operator, child1.type, child2.type);
+            typeError(ctx.getStart().getLine(), operator, child1.type, child2.type);
 
         return AST.newSubtree(equalityNode, new Inner(unif.type,NO_TYPE), child1, child2);
     }
@@ -1277,9 +1284,86 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         Unif unif = lt.unifyComp(rt);
 
         if (unif.type == NO_TYPE)
-            typeError(434374838, operator, child1.type, child2.type); // Como pegar a linha???
+            typeError(ctx.getStart().getLine(), operator, child1.type, child2.type);
 
         return AST.newSubtree(comparationalNode, new Inner(unif.type,NO_TYPE), child1, child2);
+    }
+
+    //      Operadores Unários
+
+    // Incrementais
+
+    @Override
+    public AST visitAssignableExpPostfix(AssignableExpPostfixContext ctx){
+        AST varNode = visit(ctx.assignableExpression());
+        System.out.println(varNode.kind);
+        System.out.println(varNode.type);
+
+        Type var_type = varNode.type.getType();
+
+        // Pega qual operador que é: ++ ou --
+        String operator = ctx.postfixOperator().incrementOperator().getText();
+        NodeKind opKind;
+
+        if(operator.equals("++")) opKind = PLUS_POST_INCR_VAL_NODE;
+        else opKind = MINUS_POST_INCR_VAL_NODE;
+
+        // Unificacao de tipo
+        Unif unif = var_type.unifyPlus(INT_TYPE); // Porque incrementa ou decrementa 1
+        if (unif.type == NO_TYPE)
+            typeError(ctx.getStart().getLine(), operator, varNode.type, new Inner(INT_TYPE,NO_TYPE));
+
+        return AST.newSubtree(opKind, new Inner(unif.type,NO_TYPE), varNode);
+    }
+
+    @Override
+    public AST visitPrefixUnaryExpression(PrefixUnaryExpressionContext ctx){
+        AST varNode = visit(ctx.assignableExpression());
+        Type var_type = varNode.type.getType();
+
+        // Pega qual é o operador: ++ ou --
+        String operator = ctx.incrementOperator().getText();
+        NodeKind opKind;
+
+        if(operator.equals("++")) opKind = PLUS_PRE_INCR_VAL_NODE;
+        else opKind = MINUS_PRE_INCR_VAL_NODE;
+
+        // Unificacao de tipo
+        Unif unif = var_type.unifyPlus(INT_TYPE); // Porque incrementa ou decrementa 1
+        if (unif.type == NO_TYPE)
+            typeError(ctx.getStart().getLine(), operator, new Inner(INT_TYPE,NO_TYPE), varNode.type);
+
+        return AST.newSubtree(opKind, new Inner(unif.type,NO_TYPE), varNode);
+    }
+
+    // Negação booleana e numerica
+
+    @Override
+    public AST visitNotMinusUnaryExpression(NotMinusUnaryExpressionContext ctx){
+        AST varNode = visit(ctx.unaryExpression());
+        Type var_type = varNode.type.getType();
+
+        // Pega qual é o operador: ! ou -
+        String operator = ctx.prefixOperator().getText();
+        NodeKind opKind;
+        Unif unif;
+        Inner opType;
+
+        if(operator.equals("!")){
+            opKind = NOT_NODE;
+            unif = var_type.unifyBooleans(BOOL_TYPE); // Esse operador vale apenas para booleanos
+            opType = new Inner(BOOL_TYPE,NO_TYPE);
+        }else {
+            opKind = MINUS_NODE;
+            unif = var_type.unifyOtherArith(INT_TYPE); // Esse operador vale apenas para tipos numericos
+            opType = new Inner(INT_TYPE,NO_TYPE);
+        }
+
+        // Verificando se a unificação é valida
+        if (unif.type == NO_TYPE)
+            typeError(ctx.getStart().getLine(), operator, opType, varNode.type);
+
+        return AST.newSubtree(opKind, new Inner(unif.type,NO_TYPE), varNode);
     }
 
 
@@ -1405,16 +1489,20 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         return new AST(LIST_VAL_NODE,0,new Inner(LIST_TYPE,NO_TYPE));
     }
- void printTables() {
-        System.out.print("\n\n");
-        System.out.print(st);
-        System.out.print("\n\n");
-    	System.out.print(vt);
-    	System.out.print("\n\n");
-        System.out.print(ft);
-        System.out.print("\n\n");
+     void printTables() {
+            System.out.print("\n\n");
+            System.out.print(st);
+            System.out.print("\n\n");
+            System.out.print(vt);
+            System.out.print("\n\n");
+            System.out.print(ft);
+            System.out.print("\n\n");
+        }
+    void printAST(){
+        AST.printDot(root,vt,ft);
     }
-void printAST(){
-    AST.printDot(root,vt,ft);
-}
+
+    boolean findMain(){
+        return ft.lookupFunc("main", 0);
+    }
 }

@@ -686,11 +686,11 @@ multiplicativeOperator
     |    '~/' #overIntOp
     ;
 unaryExpression
-    :    prefixOperator unaryExpression
-    |    awaitExpression
-    |    postfixExpression
-    |    (minusOperator | tildeOperator) SUPER
-    |    incrementOperator assignableExpression
+    :    prefixOperator unaryExpression         #notMinusUnaryExpression
+    |    awaitExpression                        #awaitUnaryExpression
+    |    postfixExpression                      #postFixUnaryExpression
+    |    (minusOperator | tildeOperator) SUPER  #unarywithSuper
+    |    incrementOperator assignableExpression #prefixUnaryExpression
     ;
 prefixOperator
     :    minusOperator
