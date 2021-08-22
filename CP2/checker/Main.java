@@ -13,7 +13,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
         if(args.length==0){
-            System.out.printf("ERROR, no file is passed to compile!\n");
+            System.out.printf("ERROR, no file was passed to compile!\n");
             System.exit(1);
         }
     
