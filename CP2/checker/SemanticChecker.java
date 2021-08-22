@@ -98,6 +98,8 @@ import parser.DartParser.VectorAcessContext;
 import parser.DartParser.AssignableExpPostfixContext;
 import parser.DartParser.PrefixUnaryExpressionContext;
 import parser.DartParser.NotMinusUnaryExpressionContext;
+import parser.DartParser.AssignSelectExpContext;
+
 
 import tables.StrTable;
 import tables.VarTable;
@@ -1365,6 +1367,32 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         return AST.newSubtree(opKind, new Inner(unif.type,NO_TYPE), varNode);
     }
+
+    //AssignSelector outra regra que deriva uso de lista
+
+    @Override
+    public AST visitAssignSelectExp(AssignSelectExpContext ctx){
+        AST node = visit(ctx.primary());
+        AST node2 = visit(ctx.assignableSelectorPart());
+
+        if(node2.kind==LIST_USE){
+           AST rt = checkVar(lastVar);
+                if(rt.type.getType()!=LIST_TYPE){
+                    System.err.printf("SEMANTIC ERROR (%d): the variable '%s' is not a List\n",
+                    ctx.getStart().getLine(),vt.getName(rt.key));
+                    System.exit(1);
+                }
+                rt = new AST(rt.kind,rt.key,new Inner(rt.type.getInner(),NO_TYPE));
+                rt.addChild(node2.getChild(0));
+
+                return rt;
+            
+        }
+    
+        return node;
+
+    }
+
 
 
     // --------------------- Literais ----------------------

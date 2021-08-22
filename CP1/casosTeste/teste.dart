@@ -1,8 +1,5 @@
-String b;
-double x = 1;
-int media(int x, int y){
-	return 2;
-}
 void main() {
-	for(int i = 0; i <4; i+=1);
+  	List<double> batata = [0.1,1.5,2.3,3.4];
+  	double k = batata[1]--;
+
 }
