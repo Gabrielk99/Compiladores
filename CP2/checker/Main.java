@@ -11,6 +11,11 @@ import parser.DartLexer;
 
 public class Main {
     public static void main(String[] args) throws IOException {
+
+        if(args.length==0){
+            System.out.printf("ERROR, no file is passed to compile!\n");
+            System.exit(1);
+        }
     
         CharStream input = CharStreams.fromFileName(args[0]);
 
