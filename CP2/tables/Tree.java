@@ -10,6 +10,9 @@ public class Tree{
     }
 
     public Tree addChild(int id_escopo){
+        if(id_escopo==this.id_escopo) {
+            return this;
+        }
         Tree child = new Tree(id_escopo, this);
         return child;
     }

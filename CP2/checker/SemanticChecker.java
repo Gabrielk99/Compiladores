@@ -519,23 +519,33 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node2;
        
         int i = 0;
-        
+        AST list_var = new AST(VAR_LIST_NODE,0,new Inner(NO_TYPE,NO_TYPE));
         while(ctx.initializedIdentifier(i) != null)
-            visit(ctx.initializedIdentifier(i++));
+            list_var.addChild((visit(ctx.initializedIdentifier(i++))));
         
         if (ctx.expression() != null){
             node2 = visit(ctx.expression());
             AST check = checkAssign(ctx.getStart().getLine(),node,node2);
-            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
+            AST var = AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
+            if(ctx.initializedIdentifier().size()!=0){
+                list_var.addChild(var);
+                return list_var;
+            }
+            else return var;
         }
         
-        return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
-        
+        AST var = AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
+        if(ctx.initializedIdentifier().size()!=0){
+            list_var.addChild(var);
+            return list_var;
+        }
+        return var;
     }
     //Regra de declaração de função no nível global
     @Override
     public AST visitFuncTopLevel(FuncTopLevelContext ctx){
         lastParameters = new ArrayList <Inner> ();
+        String old_name_function = lastFuncion;
         AST node1 = visit(ctx.functionSignature()); //pega a assinatura tipo nome e parametros
         AST node2 = visit(ctx.functionBody()); //pega o corpo da função
 
@@ -549,6 +559,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         root.addChild(node2);
         
+        lastFuncion = old_name_function;
 
         return root;
     }
@@ -635,9 +646,17 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitReturnStatement(ReturnStatementContext ctx){
         AST retorno = new AST(FUNCTION_RETURN_NODE,0,new Inner(NO_TYPE,NO_TYPE)); 
-
-        Key k = new Key (lastFuncion,id_escopo_atual-1); //pegando a chave para verificar questões de tipo de retorno
         
+        Tree aux_scope = scopeTree;
+        int id_func=0;
+
+        while(aux_scope!=null && !ft.lookupFunc(lastFuncion,aux_scope.getIdEscopo())) aux_scope=aux_scope.getPai();
+        
+        if(aux_scope!=null)
+            id_func = aux_scope.getIdEscopo();
+        
+        Key k = new Key (lastFuncion,id_func); //pegando a chave para verificar questões de tipo de retorno
+
         if(ctx.expression()==null && ft.getType(k).getType()!=VOID_TYPE){ //retornos sem expressão só é permitido em void function
             System.err.printf("SEMANTIC ERROR (%d): return with not type just can used in void type function and type is '%s' from function '%s' \n",
             ctx.getStart().getLine(), ft.getType(k), lastFuncion
@@ -697,17 +716,28 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node2;
        
         int i = 0;
+        AST list_var = new AST(VAR_LIST_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+
         while(ctx.initializedIdentifier(i)!=null){
-            visit(ctx.initializedIdentifier(i++));
+            list_var.addChild(visit(ctx.initializedIdentifier(i++)));
         }
         
         if(ctx.expression()!=null){
             node2 = visit(ctx.expression());
             AST check = checkAssign(ctx.getStart().getLine(),node,node2);
-            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
+            AST var = AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
+            if(ctx.initializedIdentifier().size()!=0){
+                list_var.addChild(var);
+                return list_var;
+            }
+            else return var;
         }
-       
-        return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
+        AST var =  AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
+        if(ctx.initializedIdentifier().size()!=0){
+            list_var.addChild(var);
+            return list_var;
+        }
+        return var;
     }
     //Regra para salvar também int x, y, b, c, ....;
     @Override
@@ -717,7 +747,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST node2;
         if(ctx.expression() != null){
             node2 = visit(ctx.expression());
-            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node,node2);
+            AST check = checkAssign(ctx.getStart().getLine(),node,node2);
+            return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),check.getChild(0),check.getChild(1));
         }
         return AST.newSubtree(INSTANCE_VAR_NODE,new Inner(NO_TYPE,NO_TYPE),node);
     }
@@ -732,7 +763,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     // -------------------- Declaração local de função -------------
     @Override
     public AST visitLocalFunctionDeclaration(LocalFunctionDeclarationContext ctx){
-
+        lastParameters = new ArrayList <Inner> ();
+        String old_name_function = lastFuncion;
         AST child1 = visit(ctx.functionSignature());
         AST child2 = visit(ctx.functionBody());
 
@@ -745,6 +777,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         }
         rt.addChild(child2);
 
+        lastFuncion = old_name_function;
         return rt;
     }
     // ------------------- Uso de variáveis ----------------
@@ -940,8 +973,48 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     // --------------------- FOR ----------------------------
     @Override
     public AST visitForStatement(ForStatementContext ctx){
+
+        int old_id_escopo = id_escopo_atual; //salvando escopo atual
+
+        id_escopo_atual = id_escopo_counter+1; //apenas forçando que o parametro do for caso seja declarado
+                        //dentro do () seja do escopo interno do for
+        scopeTree = scopeTree.addChild(id_escopo_atual);       
+        
         AST child1 = visit(ctx.forLoopParts());
         AST child2 = visit(ctx.statement());
+        
+        if((child2!=null && child2.kind==INSTANCE_VAR_NODE)||(child1.getChildren().size()!=0 && child1.getChild(0).kind==INSTANCE_VAR_NODE && (child2==null || (child2!= null && child2.kind!=BLOCK_NODE)))) {
+            id_escopo_counter++;
+            scopeTree = scopeTree.getPai();
+        }
+        else if((child2!=null && child2.kind!=BLOCK_NODE)||child2==null) scopeTree = scopeTree.getPai();
+        id_escopo_atual = old_id_escopo; //retornando ao escopo atual correto
+        
+        if(child1.getChildren().size()!=0){
+            AST node;
+            AST child1New = new AST(FOR_PARTS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+            for (AST child : child1.getChildren()){
+                if (child.kind==FOR_EXP_NODE){
+                    node = child;
+                    if(child2==null){
+                        child1 = child1New;
+                        AST block = new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+
+                        for(AST n:node.getChildren()){
+                            block.addChild(n);
+                        }
+                        return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1,block);
+                    }
+                    else {
+                        for(AST n:node.getChildren()){
+                            child2.addChild(n);
+                        }
+                    }
+                }
+                else child1New.addChild(child);
+            }   
+            child1 = child1New;
+        }
         if(child2==null)
             return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
             
@@ -952,42 +1025,37 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitForLoop(ForLoopContext ctx){
 
-        int old_id_escopo = id_escopo_atual; //salvando escopo atual
-
-        id_escopo_atual = id_escopo_counter+1; //apenas forçando que o parametro do for caso seja declarado
-                        //dentro do () seja do escopo interno do for
-        scopeTree = scopeTree.addChild(id_escopo_atual);
         AST child1 = visit(ctx.forInitializerStatement());
         AST child2 = null;
         AST child3 = null;
 
-        if(ctx.expression()!=null) child2 = visit(ctx.expression());
-        if(ctx.expressionList()!=null) child3 = visit(ctx.expressionList());
-        
-        scopeTree = scopeTree.getPai();
-        id_escopo_atual = old_id_escopo; //retornando ao escopo atual correto
-        if(child2!=null && child3!=null) {
+        if(ctx.expression()!=null) {
+            child2 = visit(ctx.expression());
             
-            AST rt = AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
-            List <AST> children = child3.getChildren();
-            
-            for(AST child : children){
-                rt.addChild(child);
+            if(child2.type.getType()!= BOOL_TYPE){
+                System.out.printf("SEMANTIC ERROR (%d): Second part of parameters to for loop need be a boolean expression!\n",
+                ctx.getStart().getLine());
+                System.exit(1);
             }
-            return rt;
-
-        } 
-        else if(child2!=null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
-        else if(child3!=null) {
-            AST rt =  AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
-            List <AST> children = child3.getChildren();
-
-            for(AST child : children){
-                rt.addChild(child);
-            }
-            return rt;
         }
-        return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
+
+        if(ctx.expressionList()!=null)  child3 = visit(ctx.expressionList());
+        
+        
+        if(child2!=null && child3!=null && child1!=null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2,child3);
+   
+        else if(child2!=null && child1!=null && child3==null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child2);
+        else if(child3!=null && child1!=null && child2==null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1,child3);
+      
+        else if(child2!=null && child3!=null && child1==null)return  AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child2,child3);
+  
+        else if(child1!= null && child2==null && child3==null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child1);
+        else if(child2!=null && child1==null && child3==null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child2);
+        else if(child3!=null && child1==null && child2==null) return AST.newSubtree(FOR_PARTS_NODE,new Inner(NO_TYPE,NO_TYPE),child3);
+     
+
+        return new AST(FOR_PARTS_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+
     }
     //parameter for 1
     @Override
@@ -1006,8 +1074,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     //parameter for 3
     @Override
     public AST visitExpressionList(ExpressionListContext ctx){
-        AST node =  new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE)); //Isso é um block inexistente
-                                                                //usado apenas para administrar as expressões
+        AST node =  new AST(FOR_EXP_NODE,0,new Inner(NO_TYPE,NO_TYPE));//Usado para transferir
+                                                                //As expressões pro body do for
 
         int i = 0;
         while (ctx.expression(i)!=null){
@@ -1124,13 +1192,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 Unif unif;
 
                 unif = lt.unifyOtherArith(rt);
-
-                if(unif.type == NO_TYPE)typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
-
+                Type tipo = NO_TYPE;
+                if(op.kind==OVER_INT_NODE) tipo = INT_TYPE;
+                else if(unif.type == NO_TYPE)typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
+                else tipo = unif.type;
                 nd1 = Conv.createConvNode(unif.lc,nd1);
                 node2 = Conv.createConvNode(unif.rc,node2);
 
-                old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,node2.type.getInner()),nd1,node2);
+                old_node2 = AST.newSubtree(op.kind,new Inner(tipo,node2.type.getInner()),nd1,node2);
             }
             else {
             AST nd1 = visit(ctx.unaryExpression(i-1));
@@ -1141,13 +1210,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
 
         
             unif = lt.unifyOtherArith(rt);
-            
-            if(unif.type == NO_TYPE) typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
-
+            Type tipo = NO_TYPE;
+            if(op.kind==OVER_INT_NODE) tipo = INT_TYPE;
+            else if(unif.type == NO_TYPE) typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+            else tipo = unif.type;
             nd1 = Conv.createConvNode(unif.lc,nd1);
             old_node2 = Conv.createConvNode(unif.rc,old_node2);
 
-            old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,old_node2.type.getInner()),nd1,old_node2);
+            old_node2 = AST.newSubtree(op.kind,new Inner(tipo,old_node2.type.getInner()),nd1,old_node2);
 
             }
             i--;
@@ -1298,9 +1368,6 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     @Override
     public AST visitAssignableExpPostfix(AssignableExpPostfixContext ctx){
         AST varNode = visit(ctx.assignableExpression());
-        System.out.println(varNode.kind);
-        System.out.println(varNode.type);
-
         Type var_type = varNode.type.getType();
 
         // Pega qual operador que é: ++ ou --

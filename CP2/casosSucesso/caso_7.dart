@@ -1,4 +1,4 @@
-String b;
+String b,g,s;
 
 void main(){
   List<int> k = [1,2,3,4,5];

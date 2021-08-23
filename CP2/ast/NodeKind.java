@@ -32,6 +32,9 @@ public enum NodeKind {
     INSTANCE_VAR_NODE{
         public String toString() {return "instance_var";}
     },
+    VAR_LIST_NODE{
+        public String toString(){return "list_var";}
+    },
     ASSIGN_NODE {
         public String toString() {return "=";}
     },
@@ -70,6 +73,9 @@ public enum NodeKind {
     },
     FOR_PARTS_NODE{
         public String toString() {return "for_parts";}
+    },
+    FOR_EXP_NODE{
+        public String toString() {return "for_exp";}
     },
     PLUS_NODE{
         public String toString() {return "+";}

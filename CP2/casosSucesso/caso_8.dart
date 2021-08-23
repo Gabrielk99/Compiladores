@@ -14,6 +14,16 @@ void main(){
 
     int i = 0;
     for(i = 15;; i++){
-      print("Oi\n");
+      print(k);
+      double x = k+j;
     }
+
+    for(int i=0; ;){
+      print(i);
+      print(z);
+      print(s);
+    }
+    for(; ; k++);
+    for(;k<20;k++);
+    for(;;);
 }
