@@ -20,7 +20,7 @@ BIN_PATH=bin
 
 # Diretório para os casos de teste
 
-IN=casosTeste
+IN=casosSucesso
 
 all: antlr javac
 	@echo "Done."
@@ -38,16 +38,26 @@ javac:
 	mkdir $(BIN_PATH)
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) */*.java
 
-FILE=casosSucesso/caso_9.dart
+NAME=caso_9
+FILE=casosSucesso/$(NAME).dart
 
 run:
 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $(FILE)
+	dot -Tpng resultados/$(NAME).dot > resultados/$(NAME).png
 
 runall:
 	-for FILE in $(IN)/*.dart; do \
 	 	echo -e "\nRunning $${FILE}" && \
-	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $${FILE}; \
+	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $${FILE} &&\
+		NAME=$${FILE:13:-5} &&\
+		dot -Tpng resultados/$${NAME}.dot > resultados/$${NAME}.png ;\
 	done;
 
+IN_erro=casosErro
+runallerro:
+	-for FILE in $(IN_erro)/*.dart; do \
+	 	echo -e "\nRunning $${FILE}" && \
+	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $${FILE} ;\
+	done;
 clean:
-	@rm -rf $(GEN_PATH) $(BIN_PATH) .antlr
+	@rm -rf $(GEN_PATH) $(BIN_PATH) .antlr resultados/*.*
