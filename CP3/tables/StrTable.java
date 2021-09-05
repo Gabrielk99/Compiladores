@@ -19,6 +19,9 @@ public final class StrTable {
         return this.table.containsKey(code);
     }
 
+    public String getString(int code){
+        return this.table.get(code);
+    }
     public String toString(){
         StringBuilder sb = new StringBuilder();
         Formatter f = new Formatter(sb);

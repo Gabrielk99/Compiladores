@@ -8,16 +8,13 @@ import java.util.Scanner;
 import ast.AST;
 
 import ast.ASTBaseVisitor;
-import tables.StrTable;
-import tables.VarTable;
-import tables.FuncTable;
 
 import typing.*;
 import static typing.Type.*;
 
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.*;
 import static org.objectweb.asm.Opcodes.*;
+
 import java.io.FileOutputStream;
 import tables.*;
 import java.util.ArrayList;
@@ -88,7 +85,6 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
     @Override
     protected Void visitInstanceFunc(AST node){
-        Hashtable <Key,Integer> oldVarLocal = varLocal;//Salvando a hash de variáveis e indice (motivo abaixo)
         MethodVisitor oldMV = mv; //Salvando a referência do escritor de funções antigo
                                 //como podemos ter funções locais, sempre que for declarar função
                                 //é interessante salvar a referência antiga para recuperar após a finalização
@@ -108,30 +104,31 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         if(nameFunction.equals("main") && chaveFunction.getId()==0){ //Caso a função declarada seja a main
                                                             //criamos a main que o java espera para tal 
             mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,"([Ljava/lang/String;)V",null,null);
+
+            mv.visitCode();//Sinaliza que vai construir o corpo da função
+            visit(node.getChild(2)); //Visita o corpo da função
+          
            
         }
         else{ //caso não seja a main de escopo global o nome do metodo usa o ID (para diferenciar funções locais de globais)
             nameFunction = nameFunction.concat(Integer.toString(chaveFunction.getId()));
             mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,metodoD,null,null);
+            
+            mv.visitCode();//Sinaliza que vai construir o corpo da função
+            visit(node.getChild(2)); //Visita o corpo da função
+
         }
 
-        mv.visitCode();//Sinaliza que vai construir o corpo da função
-
-        mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");
-        mv.visitLdcInsn("Hello putas");
-        mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);
-
-
-        visit(node.getChild(2)); //Visita o corpo da função
-
-        mv.visitInsn(RETURN);
+        if(ft.getType(chaveFunction).getType()==VOID_TYPE){
+            mv.visitInsn(RETURN);
+        }
+        
         mv.visitEnd(); //Sinalizando a finalização do código (função)
 
         mv.visitMaxs(-1,-1); //Como foi escolhido a computação automatica isso vai ser ignorado
                             //API obriga a chamada do metodo
 
         mv = oldMV; //Recupera a referência do método antigo
-        varLocal = oldVarLocal;//Recupera a referencia da hash de variáveis antigas
 
         return null;
     
@@ -148,10 +145,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         return null;
 
     }
-    //visita o nó de parametros da função
-    //adicionando cada chave de parametro na hash local
-    //onde a chave identifica o indice da localização da variável
-    //na pilha de variaveis locais do frame atual do metodo
+
     //como definimos que todas variaveis incluindo parametros fazem parte do corpo da classe principal
     //assim que chamarmos o método vamos puxar os valores e colocar eles nos campos da classe
     @Override
@@ -162,14 +156,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
             mv.visitVarInsn(ALOAD,0); //carrega o objeto this na pilha
 
             switch(node.type.getType()){ //Verifica o tipo antes de carregar na pilha
-                                        //TODO::Incluir Lista
                 case DOUBLE_TYPE:
                     mv.visitVarInsn(DLOAD,i);
                     break;
                 case STR_TYPE:
+                case LIST_TYPE: //lista e strings são objetos
                     mv.visitVarInsn(ALOAD,i);
                     break;
-                default:
+                default: //boolean e int são inteiros
                     mv.visitVarInsn(ILOAD,i); 
 
             }
@@ -186,6 +180,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
        }
        return null;
     }
+
     @Override
     protected Void visitBlock(AST node){ //bloco não armazena nada apenas chama outros visitadores
         int i = 0;
@@ -196,30 +191,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         return null;
     }
 
-    //Converte o tipo para o descritor esperado pela JVM
-    String typeDescriptor(Inner tipo){ 
 
-        switch (tipo.getType()){
-            case DOUBLE_TYPE : return "D";
-            case INT_TYPE : return "I";
-            case STR_TYPE : return "Ljava/lang/String";
-            case BOOL_TYPE : return "Z";
-            case VOID_TYPE : return "V";
-            case LIST_TYPE :
-                switch(tipo.getInner()){
-                    case DOUBLE_TYPE : return "[D";
-                    case INT_TYPE : return "[I";
-                    case STR_TYPE : return "[Ljava/lang/String";
-                    case BOOL_TYPE : return "[Z";
-                    case VOID_TYPE : return "[V";
-                }
-            default:
-	            System.err.printf("Invalid type: %s!\n", tipo.getType().toString());
-	            System.exit(1);
-	            return null;
-        }
-
-    }
     @Override
     protected Void visitInstanceVar(AST node){
         return null;
@@ -270,6 +242,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitStrVal(AST node){
+        int key = node.intData;
+        String value = st.getString(key);
+        mv.visitLdcInsn(value.substring(1,value.length()-1));
         return null;
     }
     @Override
@@ -374,6 +349,45 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitFuncUse(AST node){
+
+   
+        Key k = node.key;
+        if(ft.getName(k).equals("print")){
+            if(node.getChild(0).type.getType()==LIST_TYPE){
+                mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream");//carrega System.out
+                visit(node.getChild(0)); //Coloca a lista na pilha
+                Inner tipo = node.getChild(0).type; //pega o tipo da lista int list/double list/bool list/String list...
+                //Converte a lista para String
+                mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","(".concat(typeDescriptor(tipo)).concat(")Ljava/lang/String;"),false);
+                mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
+                return null;
+            }
+            else{
+                mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
+                visit(node.getChild(0)); //coloca o valor na pilha
+                Inner tipo = node.getChild(0).type; //pega o tipo
+
+                //printa o valor
+                mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(".concat(typeDescriptor(tipo)).concat(")V"),false);
+                return null;
+            }   
+        }
+        //TODO::Implementar o leitor de entrada
+        //Talvez vamos ter que criar conversores explicitos
+        //para tornar isso mais útil
+        else if (ft.getName(k).equals("readLine")){
+            return null;
+        }
+        else{
+            int i = 0;
+            while(node.getChild(i)!=null){
+                visit(node.getChild(i++)); //empilhando os parametros na pilha
+            }
+            ArrayList <Inner> parametros = ft.getParameters(k);
+            Inner tipoRetorno = ft.getType(k);
+            mv.visitMethodInsn(INVOKESTATIC,this.name,ft.getName(k).concat(Integer.toString(k.getId())),metodoDescriptor(parametros,tipoRetorno),false);
+        }
+
         return null;
     }
     @Override
@@ -407,6 +421,30 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitNot(AST node){
         return null;
+    }
+    //Converte o tipo para o descritor esperado pela JVM
+    String typeDescriptor(Inner tipo){ 
+
+        switch (tipo.getType()){
+            case DOUBLE_TYPE : return "D";
+            case INT_TYPE : return "I";
+            case STR_TYPE : return "Ljava/lang/String;";
+            case BOOL_TYPE : return "Z";
+            case VOID_TYPE : return "V";
+            case LIST_TYPE :
+                switch(tipo.getInner()){
+                    case DOUBLE_TYPE : return "[D";
+                    case INT_TYPE : return "[I";
+                    case STR_TYPE : return "[Ljava/lang/String;";
+                    case BOOL_TYPE : return "[Z";
+                    case VOID_TYPE : return "[V";
+                }
+            default:
+	            System.err.printf("Invalid type: %s!\n", tipo.getType().toString());
+	            System.exit(1);
+	            return null;
+        }
+
     }
     //Gera o descritor de metodo
     String metodoDescriptor(ArrayList <Inner> parameters, Inner retorno){
