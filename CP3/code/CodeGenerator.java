@@ -50,7 +50,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
       //retorna as chaves presentes na tabela de variaveis e caminha por elas
         for(Enumeration keys = vt.getKeys();keys.hasMoreElements();){
             Key k = (Key)keys.nextElement(); //pega a proxima chave
-            cw.visitField(ACC_PRIVATE,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
+            cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
                                                                                             //visitEnd(); sinaliza a finalização do campo
         }
     }
@@ -89,12 +89,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                                 //como podemos ter funções locais, sempre que for declarar função
                                 //é interessante salvar a referência antiga para recuperar após a finalização
 
-        visit(node.getChild(0)); //visita a declaração (nome e tipo de retorno)
-        
-        visit(node.getChild(1)); //visita os parametros (adicionar na hash de variáveis locais da função)
-                                // exemplo media(int x,int y) varlocal = {x:1,y:2}
-                               // Doubles e Objetos são armazenados em duas posições
-        
+        visit(node.getChild(0)); //visita a declaração (nome e tipo de retorno)       
       
         Inner typeRetorno = ft.getType(chaveFunction); //pega o tipo de retorno
         ArrayList <Inner> parameters = ft.getParameters(chaveFunction); //pega os tipos dos parametross
@@ -106,19 +101,22 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
             mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,"([Ljava/lang/String;)V",null,null);
 
             mv.visitCode();//Sinaliza que vai construir o corpo da função
-            visit(node.getChild(2)); //Visita o corpo da função
-          
            
         }
         else{ //caso não seja a main de escopo global o nome do metodo usa o ID (para diferenciar funções locais de globais)
             nameFunction = nameFunction.concat(Integer.toString(chaveFunction.getId()));
             mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,metodoD,null,null);
-            
+            System.out.println(metodoD);
             mv.visitCode();//Sinaliza que vai construir o corpo da função
-            visit(node.getChild(2)); //Visita o corpo da função
 
         }
 
+        visit(node.getChild(1)); //visita os parametros (adicionar na hash de variáveis locais da função)
+                    // exemplo media(int x,int y) varlocal = {x:1,y:2}
+                    // Doubles e Objetos são armazenados em duas posições
+        
+        visit(node.getChild(2)); //Visita o corpo da função
+        
         if(ft.getType(chaveFunction).getType()==VOID_TYPE){
             mv.visitInsn(RETURN);
         }
@@ -150,12 +148,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     //assim que chamarmos o método vamos puxar os valores e colocar eles nos campos da classe
     @Override
     protected Void visitFuncParameter(AST node){
-       int i = 0;
-       while(node.getChild(i)!=null){
-            AST child = node.getChild(i++);
-            mv.visitVarInsn(ALOAD,0); //carrega o objeto this na pilha
+        int i = 0;
+        System.out.println(node.kind);
+        
+        while(node.getChild(i)!=null){
+            System.out.println(node.getChild(0).kind);
+            AST child = node.getChild(i);
 
-            switch(node.type.getType()){ //Verifica o tipo antes de carregar na pilha
+            switch(child.type.getType()){ //Verifica o tipo antes de carregar na pilha
                 case DOUBLE_TYPE:
                     mv.visitVarInsn(DLOAD,i);
                     break;
@@ -165,6 +165,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     break;
                 default: //boolean e int são inteiros
                     mv.visitVarInsn(ILOAD,i); 
+                    break;
 
             }
            
@@ -176,7 +177,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
             //Para questões de funções aninhadas e etc
             //A cada chamada de função
             //Temos que atualizar os parametros que estão como atributos da classe
-            mv.visitFieldInsn(PUTFIELD,this.name,child.key.getName().concat(Integer.toString(child.key.getId())),typeDescriptor(vt.getType(child.key)));
+            mv.visitFieldInsn(PUTSTATIC,this.name,child.key.getName().concat(Integer.toString(child.key.getId())),typeDescriptor(vt.getType(child.key)));
+            
+            i++;
        }
        return null;
     }
@@ -226,18 +229,21 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitIntVal(AST node){
+        mv.visitLdcInsn(node.intData);
         return null;
     }
     @Override
     protected Void visitBoolVal(AST node){
+        mv.visitLdcInsn(node.intData);
         return null;
     }
     @Override
     protected Void visitDoubleVal(AST node){
+        mv.visitLdcInsn(node.doubleData);
         return null;
     }
     @Override
-    protected Void visitVoidVal(AST node){
+    protected Void visitVoidVal(AST node){ //não tem valor
         return null;
     }
     @Override
@@ -333,28 +339,56 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitI2D(AST node){
+        visit(node.getChild(0));
+        mv.visitInsn(I2D);
         return null;
     }
     @Override
     protected Void visitVarDecl(AST node){
         return null;
     }
+    //Retorna a função
     @Override
     protected Void visitFuncReturn(AST node){
+        if(node.getChild(0)==null) return null; //caso não tenha filho é return; (não fazemos nada)
+                                    //Por que o (RETURN) ta sendo feito no instanceFunction
+
+        else{ //se tiver um filho, ele retorna uma expressão
+            visit(node.getChild(0)); //resolve a expressão e coloca na pilha
+            
+            switch(node.type.getType()){ //verifica o tipo de retorno
+                case DOUBLE_TYPE:
+                    mv.visitInsn(DRETURN);
+                    break;
+                case STR_TYPE:
+                case LIST_TYPE:
+                    mv.visitInsn(ARETURN);
+                    break;
+                default:
+                    mv.visitInsn(IRETURN);
+                    break;
+            }
+        }
         return null;
     }
+    //coloca o valor da variável na pilha
     @Override
     protected Void visitVarUse(AST node){
+        Key k = node.key; //pega a chave de vt
+        String name = vt.getName(k).concat(Integer.toString(k.getId())); //pega o nome da variável
+
+        mv.visitFieldInsn(GETSTATIC,this.name,name,typeDescriptor(vt.getType(k))); //pega o atributo da classe e coloca o valor na pilha
         return null;
     }
+    //realiza a chamada de metodo
     @Override
     protected Void visitFuncUse(AST node){
 
    
         Key k = node.key;
-        if(ft.getName(k).equals("print")){
-            if(node.getChild(0).type.getType()==LIST_TYPE){
-                mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream");//carrega System.out
+        if(ft.getName(k).equals("print")){ //função bultin
+            if(node.getChild(0).type.getType()==LIST_TYPE){ //tratamento diferente pra listas (conversão pra String)
+                mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
                 visit(node.getChild(0)); //Coloca a lista na pilha
                 Inner tipo = node.getChild(0).type; //pega o tipo da lista int list/double list/bool list/String list...
                 //Converte a lista para String
@@ -362,11 +396,10 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
                 return null;
             }
-            else{
+            else{ //caso não seja lista, chamada direta
                 mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
                 visit(node.getChild(0)); //coloca o valor na pilha
                 Inner tipo = node.getChild(0).type; //pega o tipo
-
                 //printa o valor
                 mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(".concat(typeDescriptor(tipo)).concat(")V"),false);
                 return null;
@@ -378,7 +411,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         else if (ft.getName(k).equals("readLine")){
             return null;
         }
-        else{
+        else{ //não bultin
             int i = 0;
             while(node.getChild(i)!=null){
                 visit(node.getChild(i++)); //empilhando os parametros na pilha
@@ -398,8 +431,35 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     protected Void visitListUse(AST node){//não sera mudado
         return null;
     }
+    //empilha a lista na pilha
     @Override
     protected Void visitListVal(AST node){
+        int length = node.getChildren().size(); //tamanho da lista
+        mv.visitLdcInsn(length); //coloca o tamanho na pilha
+        mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
+                                                                //topo da pilha é agora a referência para a lista
+        mv.visitVarInsn(ASTORE,1); //Guardar a referencia da lista localmente (operações de atribuição some com a referencia da pilha)
+        for(int i = 0; i<length;i++){
+            mv.visitVarInsn(ALOAD,1); //joga a referência da lista na pilha
+            mv.visitLdcInsn(i); //pilha --> ...,lista,indice
+            visit(node.getChild(i)); //adiciona o valor do filho (valor da posição i da lista do nó) na pilha
+                                    //pilha --> ...,lista,indice,valor
+
+            switch(node.type.getInner()){ //o tipo de ASTORE muda para o tipo da lista
+                case DOUBLE_TYPE:
+                    mv.visitInsn(DASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+                case STR_TYPE:
+                    mv.visitInsn(AASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+                default:
+                    mv.visitInsn(IASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+            }
+            
+        }
+        mv.visitVarInsn(ALOAD,1);//jogar a referência novamente ao topo da pilha 
+                                //agora com todos valores atualizados
         return null;
     }
     @Override
