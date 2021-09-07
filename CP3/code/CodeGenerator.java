@@ -38,7 +38,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         this.name = name;
 
         cw.visit(V1_8,ACC_PUBLIC+ACC_STATIC,this.name,null,"java/lang/Object",null); //Cria a classe principal com nome do arquivo teste
-        setFields();//adiciona todas variáveis como parte da classe 
+        // setFields();//adiciona todas variáveis como parte da classe
 
     }
 
@@ -56,15 +56,24 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
 
     @Override
-    protected Void visitGlobal(AST node){ //Visita o nó raiz global 
-        
+    protected Void visitGlobal(AST node){ //Visita o nó raiz global
+        // Cria a main no global para englobar todas as variaveis e funcoes globais
+        mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, "main","([Ljava/lang/String;)V",null,null);
+
+        mv.visitCode();//Sinaliza que vai construir o corpo da função
         
         int i = 0;
         while(node.getChild(i)!=null){ 
             visit(node.getChild(i++)); //enquanto houver filhos 
         }
 
+        mv.visitInsn(RETURN); // retorno void
+        mv.visitEnd(); //Sinalizando a finalização do código da main
+        mv.visitMaxs(-1,-1); //Como foi escolhido a computação automatica isso vai ser ignorado
+        //API obriga a chamada do metodo
+
         cw.visitEnd();
+
         byte[] bytes = cw.toByteArray();
 
         try(FileOutputStream stream = new FileOutputStream("".concat(name).concat(".class"))){
@@ -98,9 +107,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         if(nameFunction.equals("main") && chaveFunction.getId()==0){ //Caso a função declarada seja a main
                                                             //criamos a main que o java espera para tal 
-            mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,"([Ljava/lang/String;)V",null,null);
+            /*mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,"([Ljava/lang/String;)V",null,null);
 
-            mv.visitCode();//Sinaliza que vai construir o corpo da função
+            mv.visitCode();//Sinaliza que vai construir o corpo da função*/
+
+            visit(node.getChild(1)); // Visita parametros
+            visit(node.getChild(2)); //Visita o corpo da função
+
+            return null;
            
         }
         else{ //caso não seja a main de escopo global o nome do metodo usa o ID (para diferenciar funções locais de globais)
@@ -197,14 +211,36 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
     @Override
     protected Void visitInstanceVar(AST node){
+        visit(node.getChild(0)); // Visita variavel
+
+        if (node.getChild(1)!=null) { // Variavel foi inicializada com valor
+            Key k = node.getChild(0).key;
+
+            visit(node.getChild(1));
+            mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
+                    typeDescriptor(vt.getType(k)));
+        }
         return null;
     }
     @Override
     protected Void visitVarList(AST node){
+        int i = 0;
+
+        while(node.getChild(i) != null)
+            visit(node.getChild(i++));
+
         return null;
     }
     @Override
     protected Void visitAssign(AST node){
+        visit(node.getChild(0)); // Visita variavel
+
+        Key k = node.getChild(0).key;
+
+        visit(node.getChild(1)); // Visita a expressao da atribuicao
+        mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
+                typeDescriptor(vt.getType(k)));
+
         return null;
     }
     @Override
@@ -225,8 +261,24 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitIf(AST node){
+        visit(node.getChild(0)); //Visita expressao do if
+
+        Label else_ = new Label();
+        Label end = new Label();
+
+        mv.visitJumpInsn(IFEQ, else_); // Se for falso (IF EQual 0), pula para as instruções else
+        //THEN
+        visit(node.getChild(1));
+        mv.visitJumpInsn(GOTO, end); // Finalizou o then, pula pro fim
+        // ELSE
+        mv.visitLabel(else_);
+        if(node.getChild(2) != null)
+            visit(node.getChild(2));
+
+        mv.visitLabel(end);
         return null;
     }
+
     @Override
     protected Void visitIntVal(AST node){
         mv.visitLdcInsn(node.intData);
@@ -323,10 +375,25 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitOr(AST node){
+        int i = 1;
+
+        visit(node.getChild(0));
+        while(node.getChild(i) != null){
+            visit(node.getChild(i++));
+            mv.visitInsn(IOR);
+        }
+
         return null;
     }
     @Override
     protected Void visitAnd(AST node){
+        int i = 1;
+
+        visit(node.getChild(0));
+        while(node.getChild(i) != null){
+            visit(node.getChild(i++));
+            mv.visitInsn(IAND);
+        }
         return null;
     }
     @Override
@@ -345,6 +412,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitVarDecl(AST node){
+        Key k = node.key;
+        cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
+        //visitEnd(); sinaliza a finalização do campo
         return null;
     }
     //Retorna a função
@@ -480,6 +550,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitNot(AST node){
+        visit(node.getChild(0));
+
+        mv.visitInsn(INEG);
         return null;
     }
     //Converte o tipo para o descritor esperado pela JVM
