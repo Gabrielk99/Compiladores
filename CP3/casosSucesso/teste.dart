@@ -18,21 +18,28 @@ void main(){
 int k = 2;
 
 void main(){
-    bool v = true || true & false;
-    if(v && true && true) {
-        print("to no then");
-    }else {
-        print("to no else");
-    }
+    // bool v = true || true & false;
+    // if(v && true && true) {
+    //     print("to no then");
+    // }else {
+    //     print("to no else");
+    // }
 
-    if(!v)
-        print("esse nao tem else");
+    // if(!v)
+    //     print("esse nao tem else");
 
-    if(v && false)
-        print("ih nesse then eu nao entro");
-    else{
-        print("opa, esse entrei no else");
-    }
+    // if(v && false)
+    //     print("ih nesse then eu nao entro");
+    // else{
+    //     print("opa, esse entrei no else");
+    // }
 
-    print("fim");
+    // List <int> x = [12,3]+[32];
+
+    // print(x);
+
+    List <double> y = [4.2];
+    List <double> z = [1.3,12.4];
+    print(y+z+[13.13,312.3,1.24]);
+    //print([]+y+z+[4.5,1.3,0.1241,14.1]); corrigir
 }

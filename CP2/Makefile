@@ -38,7 +38,7 @@ javac:
 	mkdir $(BIN_PATH)
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) */*.java
 
-NAME=caso_9
+NAME=caso_6
 FILE=casosSucesso/$(NAME).dart
 
 run:

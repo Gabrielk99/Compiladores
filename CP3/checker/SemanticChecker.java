@@ -124,6 +124,9 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
     void addBultin(){
         ft.addFunc("print",0,new Inner(STR_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
         ft.addFunc("readLine",0,new Inner(STR_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
+        ft.addFunc("readInt",0,new Inner(INT_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
+        ft.addFunc("readDouble",0,new Inner(DOUBLE_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
+        ft.addFunc("readBool",0,new Inner(BOOL_TYPE,NO_TYPE),0,new ArrayList<Inner>(),true);
     }
 
     Inner lastType; //Variável global com o último tipo declarado
@@ -1121,7 +1124,8 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 else {
                     unif = lt.unifyOtherArith(rt);
                 }
-                if(unif.type == NO_TYPE) typeError(ctx.additiveOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
+                if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
+                
                 //realiza as conversões
                 nd1 = Conv.createConvNode(unif.lc,nd1);
                 node2 = Conv.createConvNode(unif.rc,node2);
@@ -1142,7 +1146,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             else {
                 unif = lt.unifyOtherArith(rt);
             }
-            if(unif.type == NO_TYPE) typeError(ctx.additiveOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+            if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
             //Conversão
             nd1 = Conv.createConvNode(unif.lc,nd1);
             old_node2 = Conv.createConvNode(unif.rc,old_node2);

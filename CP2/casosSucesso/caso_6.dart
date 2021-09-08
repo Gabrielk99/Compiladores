@@ -9,9 +9,10 @@ void main(){
 
     List<bool> a = [true,false];
     List<String> b = ["AS","as"];
-    List<int> x = [1,2,3];
-    List <double> y = [1.3,3.0,4.2];
+    List<int> x = [];
+    List <double> y = [1.3,3.0,4.2]+["3"];
     List <void> v = [];
     void c;
+    print([]+[]);
 
 }

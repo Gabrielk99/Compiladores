@@ -20,7 +20,8 @@ import tables.*;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Enumeration;
-
+import java.util.Scanner;
+import java.io.InputStream;
 public class CodeGenerator extends ASTBaseVisitor <Void>{
 
     public final VarTable vt; //tabela de variáveis
@@ -29,6 +30,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     public final String name; //nome do arquivo de teste (usado para gerar o binario final name.class)
     public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES);
     
+    MethodVisitor mv; //Variável global para construir funções
 
     //Construtor
     public CodeGenerator(StrTable st, VarTable vt, FuncTable ft,String name){
@@ -36,23 +38,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         this.ft = ft;
         this.st = st;
         this.name = name;
-
         cw.visit(V1_8,ACC_PUBLIC+ACC_STATIC,this.name,null,"java/lang/Object",null); //Cria a classe principal com nome do arquivo teste
-        // setFields();//adiciona todas variáveis como parte da classe
+        cw.visitField(ACC_PUBLIC+ACC_FINAL+ACC_STATIC,"in","Ljava/util/Scanner;",null,null).visitEnd(); //Atributo scanner para auxiliar na leitura de dados do teclado
 
-    }
-
-    //Função para adicionar todas variáveis presente em vt como membro da classe principal 
-    //(hacker para questões de funções aninhadas)
-    //Como a semantica já foi tratada, agora basta acessar sem questionar
-
-    void setFields(){
-      //retorna as chaves presentes na tabela de variaveis e caminha por elas
-        for(Enumeration keys = vt.getKeys();keys.hasMoreElements();){
-            Key k = (Key)keys.nextElement(); //pega a proxima chave
-            cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
-                                                                                            //visitEnd(); sinaliza a finalização do campo
-        }
     }
 
     @Override
@@ -62,6 +50,15 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         mv.visitCode();//Sinaliza que vai construir o corpo da função
         
+        //Inicializando o Scanner para leitura de entrada
+        mv.visitTypeInsn(NEW,"java/util/Scanner"); //Instanciando um novo objeto do tipo scanner
+        mv.visitInsn(DUP); //duplicando o valor da referencia, um vai servir para a chamada do construtor, o outro vai ser para retorno do objeto
+        mv.visitFieldInsn(GETSTATIC,"java/lang/System","in","Ljava/io/InputStream;"); //Parametro System.in
+        mv.visitMethodInsn(INVOKESPECIAL,"java/util/Scanner","<init>","(Ljava/io/InputStream;)V",false); //Chamo o construtor do Scanner que espera o System.in
+        mv.visitFieldInsn(PUTSTATIC,this.name,"in","Ljava/util/Scanner;"); //Atribuo o objeto para o atributo in de leitura da classe principal
+
+        concatIntListCreatStruct();//cria uma função em baixo nível de concatenar listas de inteiros
+        concatDoubleListCreatStruct();//cria uma função em baixo nível de concatena listas de double
         int i = 0;
         while(node.getChild(i)!=null){ 
             visit(node.getChild(i++)); //enquanto houver filhos 
@@ -90,7 +87,6 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     String nameFunction; //Global para armazenar o nome da função
     Key chaveFunction;//Global para armazenar a chave da função (acesso a tabela)
 
-    MethodVisitor mv; //Variável global para construir funções
 
     @Override
     protected Void visitInstanceFunc(AST node){
@@ -106,10 +102,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         String metodoD = metodoDescriptor(parameters,typeRetorno); //gera o method descriptor
 
         if(nameFunction.equals("main") && chaveFunction.getId()==0){ //Caso a função declarada seja a main
-                                                            //criamos a main que o java espera para tal 
-            /*mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,"([Ljava/lang/String;)V",null,null);
-
-            mv.visitCode();//Sinaliza que vai construir o corpo da função*/
+                                                            //vamos apenas visitar o corpo
+                                                            //estamos tratando a main no visitGlobal
+                                                            //hacker para tratar de todas operações globais com a api
 
             visit(node.getChild(1)); // Visita parametros
             visit(node.getChild(2)); //Visita o corpo da função
@@ -120,9 +115,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         else{ //caso não seja a main de escopo global o nome do metodo usa o ID (para diferenciar funções locais de globais)
             nameFunction = nameFunction.concat(Integer.toString(chaveFunction.getId()));
             mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC, nameFunction,metodoD,null,null);
-            System.out.println(metodoD);
             mv.visitCode();//Sinaliza que vai construir o corpo da função
-
         }
 
         visit(node.getChild(1)); //visita os parametros (adicionar na hash de variáveis locais da função)
@@ -319,26 +312,128 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitPlus(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        
+        switch(node.type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(IADD);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DADD);
+                break;
+            case LIST_TYPE:
+                mv.visitVarInsn(ASTORE,1);
+                mv.visitVarInsn(ASTORE,0);
+
+                mv.visitVarInsn(ALOAD,0);
+                mv.visitInsn(ARRAYLENGTH);
+
+                mv.visitVarInsn(ALOAD,1);
+                mv.visitInsn(ARRAYLENGTH);
+                mv.visitInsn(IADD);
+                mv.visitInsn(DUP);
+                mv.visitVarInsn(ISTORE,2);
+                mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);
+                mv.visitVarInsn(ASTORE,3);
+                mv.visitLdcInsn(0);
+                mv.visitVarInsn(ISTORE,4);
+                
+                mv.visitVarInsn(ALOAD,0);
+                mv.visitVarInsn(ALOAD,1);
+                mv.visitVarInsn(ILOAD,2);
+                mv.visitVarInsn(ALOAD,3);
+                mv.visitVarInsn(ILOAD,4);
+
+                switch(node.type.getInner()){
+                    case INT_TYPE:
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([I[II[II)[I",false);
+                        break;
+                    case DOUBLE_TYPE:
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatDoubleList","([D[DI[DI)[D",false);
+                        break;
+                    case BOOL_TYPE:
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([Z[ZI[ZI)[Z",false);
+                        break;
+                    case STR_TYPE:
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([Ljava/lang/String;[Ljava/lang/String;I[Ljava/lang/String;I)[Ljava/lang/String;",false);
+                        break;
+
+                }
+             
+                
+        }
         return null;
     }
     @Override
     protected Void visitMinus(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        switch(node.type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(ISUB);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DSUB);
+                break;
+        }
         return null;
     }
     @Override
     protected Void visitTimes(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        switch(node.type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(IMUL);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DMUL);
+                break;
+        }
         return null;
     }
     @Override
     protected Void visitOver(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        switch(node.type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(IDIV);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DDIV);
+                break;
+        }
         return null;
     }
     @Override
     protected Void visitOverInt(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        switch(node.getChild(0).type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(IDIV);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DDIV);
+                break;
+        }
+        mv.visitInsn(D2I);
         return null;
     }
     @Override
     protected Void visitMod(AST node){
+        visit(node.getChild(0));
+        visit(node.getChild(1));
+        switch(node.type.getType()){
+            case INT_TYPE:
+                mv.visitInsn(IREM);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DREM);
+                break;
+        }
         return null;
     }
     @Override
@@ -358,11 +453,11 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         return null;
     }
     @Override
-    protected Void visitIs(AST node){
+    protected Void visitIs(AST node){//não implementamos no checker (descartado)
         return null;
     }
     @Override
-    protected Void visitIsNot(AST node){
+    protected Void visitIsNot(AST node){ //O mesmo que o de cima
         return null;
     }
     @Override
@@ -414,7 +509,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     protected Void visitVarDecl(AST node){
         Key k = node.key;
         cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
-        //visitEnd(); sinaliza a finalização do campo
+                                                                                                            //visitEnd(); sinaliza a finalização do campo
         return null;
     }
     //Retorna a função
@@ -475,10 +570,25 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 return null;
             }   
         }
-        //TODO::Implementar o leitor de entrada
-        //Talvez vamos ter que criar conversores explicitos
-        //para tornar isso mais útil
+        //Lendo da entrada
         else if (ft.getName(k).equals("readLine")){
+            mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
+            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","next","()Ljava/lang/String;",false);
+            return null;
+        }
+        else if (ft.getName(k).equals("readInt")){
+            mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
+            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextInt","()I",false);
+            return null;
+        }
+        else if (ft.getName(k).equals("readDouble")){
+            mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
+            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextDouble","()D",false);
+            return null;
+        }
+        else if (ft.getName(k).equals("readBool")){
+            mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
+            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextBoolean","()Z",false);
             return null;
         }
         else{ //não bultin
@@ -506,6 +616,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     protected Void visitListVal(AST node){
         int length = node.getChildren().size(); //tamanho da lista
         mv.visitLdcInsn(length); //coloca o tamanho na pilha
+        
         mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
                                                                 //topo da pilha é agora a referência para a lista
         mv.visitVarInsn(ASTORE,1); //Guardar a referencia da lista localmente (operações de atribuição some com a referencia da pilha)
@@ -593,9 +704,114 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         return metodoD;
     }
+    
+    
+    void concatIntListCreatStruct(){
+        MethodVisitor oldMV = mv;
+        mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC,"concatIntList","([I[II[II)[I",null,null);
+        
+        Label concat = new Label();
+        Label list2 = new Label();
+        Label verify = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(concat);
+        mv.visitVarInsn(ALOAD,3);
+        mv.visitVarInsn(ILOAD,4);
 
 
+        mv.visitInsn(DUP);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitJumpInsn(IF_ICMPGE,list2);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitInsn(IALOAD);
+        mv.visitInsn(IASTORE);
+        mv.visitJumpInsn(GOTO,verify);
+        
+        mv.visitLabel(list2);
+        mv.visitVarInsn(ALOAD,1);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitInsn(ISUB);
+        mv.visitInsn(IALOAD);
+        mv.visitInsn(IASTORE);
 
 
+        mv.visitLabel(verify);
+        mv.visitVarInsn(ILOAD,2);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitLdcInsn(1);
+        mv.visitInsn(IADD);
+        mv.visitInsn(DUP);
+        mv.visitVarInsn(ISTORE,4);
+        mv.visitJumpInsn(IF_ICMPEQ,end);
+        mv.visitJumpInsn(GOTO,concat);
+        
+        mv.visitLabel(end);
+        mv.visitVarInsn(ALOAD,3);
+        
+        mv.visitInsn(ARETURN);
+        mv.visitEnd();
+        mv.visitMaxs(-1,-1);
+
+        mv = oldMV;
+    }
+     
+    void concatDoubleListCreatStruct(){
+        MethodVisitor oldMV = mv;
+        mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC,"concatDoubleList","([D[DI[DI)[D",null,null);
+        
+        Label concat = new Label();
+        Label list2 = new Label();
+        Label verify = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(concat);
+        mv.visitVarInsn(ALOAD,3);
+        mv.visitVarInsn(ILOAD,4);
+
+
+        mv.visitInsn(DUP);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitJumpInsn(IF_ICMPGE,list2);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitInsn(DALOAD);
+        mv.visitInsn(DASTORE);
+        mv.visitJumpInsn(GOTO,verify);
+        
+        mv.visitLabel(list2);
+        mv.visitVarInsn(ALOAD,1);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitVarInsn(ALOAD,0);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitInsn(ISUB);
+        mv.visitInsn(DALOAD);
+        mv.visitInsn(DASTORE);
+
+
+        mv.visitLabel(verify);
+        mv.visitVarInsn(ILOAD,2);
+        mv.visitVarInsn(ILOAD,4);
+        mv.visitLdcInsn(1);
+        mv.visitInsn(IADD);
+        mv.visitInsn(DUP);
+        mv.visitVarInsn(ISTORE,4);
+        mv.visitJumpInsn(IF_ICMPEQ,end);
+        mv.visitJumpInsn(GOTO,concat);
+        
+        mv.visitLabel(end);
+        mv.visitVarInsn(ALOAD,3);
+        
+        mv.visitInsn(ARETURN);
+        mv.visitEnd();
+        mv.visitMaxs(-1,-1);
+
+        mv = oldMV;
+    }
 
 }
