@@ -37,11 +37,13 @@ void main(){
     // List <int> x = [12,3]+[32];
 
     // print(x);
-
-    List <int> x = [123]+[1,231]+[]+[12314]+[1]+[]+[];
-    print(["poha","loca"]+["ebae","ebae"]+[]);
-    print(x);
-    print([true,false,true]+[]+[false]+[]+[]+[true]);
+    bool t = 3<4;
+    print("a"!="b");
+    print("af"=="");
+    print([12,3]!=[12,3]);
+    //print(3<4);
+    // print(4>3);
+    //print(false);
     // List <double> y = [4.2];
     // List <double> z = [1.3,12.4];
     // print(y+z+[13.13,312.3,1.24]);

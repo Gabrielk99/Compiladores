@@ -1339,6 +1339,14 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         // Por causa do tipo void, devemos fazer essa verificação
         Type lt = child1.type.getType();
         Type rt = child2.type.getType();
+
+        if(lt==INT_TYPE && rt==DOUBLE_TYPE){
+            child1 = Conv.createConvNode(I2D,child1);
+        }
+        else if(lt==DOUBLE_TYPE && rt==INT_TYPE){
+            child2 = Conv.createConvNode(I2D,child2);
+        }
+
         Unif unif = lt.unifyComp(rt);
 
         if (unif.type == NO_TYPE)
