@@ -38,8 +38,12 @@ void main(){
 
     // print(x);
 
-    List <double> y = [4.2];
-    List <double> z = [1.3,12.4];
-    print(y+z+[13.13,312.3,1.24]);
-    //print([]+y+z+[4.5,1.3,0.1241,14.1]); corrigir
+    List <int> x = [123]+[1,231]+[]+[12314]+[1]+[]+[];
+    print(["poha","loca"]+["ebae","ebae"]+[]);
+    print(x);
+    print([true,false,true]+[]+[false]+[]+[]+[true]);
+    // List <double> y = [4.2];
+    // List <double> z = [1.3,12.4];
+    // print(y+z+[13.13,312.3,1.24]);
+    // //print([]+y+z+[4.5,1.3,0.1241,14.1]); corrigir
 }

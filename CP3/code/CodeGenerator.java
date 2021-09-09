@@ -59,6 +59,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         concatIntListCreatStruct();//cria uma função em baixo nível de concatenar listas de inteiros
         concatDoubleListCreatStruct();//cria uma função em baixo nível de concatena listas de double
+        concatStringListCreatStruct();//cria uma função em baixo nível de concatena listas de string
+        concatBoolListCreatStruct();//cria uma função em baixo nível de concatena listas de bool
         int i = 0;
         while(node.getChild(i)!=null){ 
             visit(node.getChild(i++)); //enquanto houver filhos 
@@ -315,6 +317,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         visit(node.getChild(0));
         visit(node.getChild(1));
         
+        //Verifica o tipo para chamar corretamente a operação
         switch(node.type.getType()){
             case INT_TYPE:
                 mv.visitInsn(IADD);
@@ -334,7 +337,13 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 mv.visitInsn(IADD);
                 mv.visitInsn(DUP);
                 mv.visitVarInsn(ISTORE,2);
-                mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);
+                
+                //Como bool é int, e precisamos trabalhar com concatenação de lista de booleanos
+                //Ao invés do tipo primitivo nós criamos a lista como Objeto
+                //Dessa forma conseguimos manipular livremente
+                if(node.type.getInner()==BOOL_TYPE)  mv.visitMultiANewArrayInsn("[Ljava/lang/Boolean;",1);
+                else mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);
+                
                 mv.visitVarInsn(ASTORE,3);
                 mv.visitLdcInsn(0);
                 mv.visitVarInsn(ISTORE,4);
@@ -347,19 +356,23 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
                 switch(node.type.getInner()){
                     case INT_TYPE:
+                    case VOID_TYPE:
                         mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([I[II[II)[I",false);
                         break;
                     case DOUBLE_TYPE:
                         mv.visitMethodInsn(INVOKESTATIC,this.name,"concatDoubleList","([D[DI[DI)[D",false);
                         break;
                     case BOOL_TYPE:
-                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([Z[ZI[ZI)[Z",false);
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatBoolList","([Ljava/lang/Boolean;[Ljava/lang/Boolean;I[Ljava/lang/Boolean;I)[Ljava/lang/Boolean;",false);
                         break;
                     case STR_TYPE:
-                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatIntList","([Ljava/lang/String;[Ljava/lang/String;I[Ljava/lang/String;I)[Ljava/lang/String;",false);
+                        mv.visitMethodInsn(INVOKESTATIC,this.name,"concatStringList","([Ljava/lang/String;[Ljava/lang/String;I[Ljava/lang/String;I)[Ljava/lang/String;",false);
                         break;
 
                 }
+            case STR_TYPE:
+                //TODO::fazer concatenação de String
+                break;
              
                 
         }
@@ -553,13 +566,26 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Key k = node.key;
         if(ft.getName(k).equals("print")){ //função bultin
             if(node.getChild(0).type.getType()==LIST_TYPE){ //tratamento diferente pra listas (conversão pra String)
-                mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
-                visit(node.getChild(0)); //Coloca a lista na pilha
-                Inner tipo = node.getChild(0).type; //pega o tipo da lista int list/double list/bool list/String list...
-                //Converte a lista para String
-                mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","(".concat(typeDescriptor(tipo)).concat(")Ljava/lang/String;"),false);
-                mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
-                return null;
+                if(node.getChild(0).type.getInner()!=STR_TYPE && node.getChild(0).type.getInner()!=BOOL_TYPE ){
+                    mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
+                    visit(node.getChild(0)); //Coloca a lista na pilha
+                    Inner tipo = node.getChild(0).type; //pega o tipo da lista int list/double list/bool list/String list...
+                    //Converte a lista para String
+                    mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","(".concat(typeDescriptor(tipo)).concat(")Ljava/lang/String;"),false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
+                    return null;
+                }
+                else{
+                    mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
+                    visit(node.getChild(0)); //Coloca a lista na pilha
+                    Inner tipo = node.getChild(0).type; //pega o tipo da lista int list/double list/bool list/String list...
+                    //Converte a lista para String
+                    //mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","asList","(".concat(typeDescriptor(node.getChild(0).type)).concat(")Ljava/util/List;"),false);
+                    //mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/List","toString","()Ljava/lang/String;",false);
+                    mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","([Ljava/lang/Object;)Ljava/lang/String;",false);
+                    mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
+                    return null;
+                }
             }
             else{ //caso não seja lista, chamada direta
                 mv.visitFieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;");//carrega System.out
@@ -617,7 +643,12 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         int length = node.getChildren().size(); //tamanho da lista
         mv.visitLdcInsn(length); //coloca o tamanho na pilha
         
-        mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
+        //Como bool é int, e precisamos trabalhar com concatenação de lista de booleanos
+        //Ao invés do tipo primitivo nós criamos a lista como Objeto
+        //Dessa forma conseguimos manipular livremente
+        if(node.type.getInner()==BOOL_TYPE) mv.visitMultiANewArrayInsn("[Ljava/lang/Boolean;",1); 
+        
+        else mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
                                                                 //topo da pilha é agora a referência para a lista
         mv.visitVarInsn(ASTORE,1); //Guardar a referencia da lista localmente (operações de atribuição some com a referencia da pilha)
         for(int i = 0; i<length;i++){
@@ -633,9 +664,18 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 case STR_TYPE:
                     mv.visitInsn(AASTORE); //guarda o valor em lista[indice], pilha --> ...
                     break;
+                case BOOL_TYPE:
+                    mv.visitVarInsn(ISTORE,2); //guarda o valor primitivo
+                    mv.visitTypeInsn(NEW,"java/lang/Boolean"); //cria instancia de Boolean
+                    mv.visitInsn(DUP); //duplica para ter a referencia de retorno
+                    mv.visitVarInsn(ILOAD,2); //carrega o valor primitivo
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Boolean","<init>","(Z)V",false); //chama o construtor
+                    mv.visitInsn(AASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;   
                 default:
                     mv.visitInsn(IASTORE); //guarda o valor em lista[indice], pilha --> ...
                     break;
+
             }
             
         }
@@ -681,7 +721,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     case INT_TYPE : return "[I";
                     case STR_TYPE : return "[Ljava/lang/String;";
                     case BOOL_TYPE : return "[Z";
-                    case VOID_TYPE : return "[V";
+                    case VOID_TYPE : return "[I";
                 }
             default:
 	            System.err.printf("Invalid type: %s!\n", tipo.getType().toString());
@@ -716,39 +756,46 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Label end = new Label();
 
         mv.visitLabel(concat);
-        mv.visitVarInsn(ALOAD,3);
-        mv.visitVarInsn(ILOAD,4);
-
-
-        mv.visitInsn(DUP);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitInsn(ARRAYLENGTH);
-        mv.visitJumpInsn(IF_ICMPGE,list2);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitInsn(IALOAD);
-        mv.visitInsn(IASTORE);
-        mv.visitJumpInsn(GOTO,verify);
+   
+        mv.visitVarInsn(ILOAD,4); //carrega o indice
+        mv.visitVarInsn(ALOAD,0); //carrega a referencia da lista 1
+        mv.visitInsn(ARRAYLENGTH); //pega o tamanho da lista 1
+        mv.visitJumpInsn(IF_ICMPGE,list2); //verifica se o indice é maior que o tamanho se sim pula pra lista 2
+     
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitVarInsn(ALOAD,0); //se não carrega novamente a referencia da lista 1
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitInsn(IALOAD); //carrega o valor da lista 1 na pilha
+        mv.visitInsn(IASTORE); //guarda o valor na lista resultante 
+        mv.visitJumpInsn(GOTO,verify); //pula para verificação
         
-        mv.visitLabel(list2);
-        mv.visitVarInsn(ALOAD,1);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitInsn(ARRAYLENGTH);
-        mv.visitInsn(ISUB);
-        mv.visitInsn(IALOAD);
-        mv.visitInsn(IASTORE);
+        mv.visitLabel(list2); //elementos da lista 2
+        mv.visitVarInsn(ALOAD,1); //carrega referencia da lista 2 pilha : ...,lista_2
+        mv.visitInsn(ARRAYLENGTH); //pilha : ..., len(lista_2)
+        mv.visitLdcInsn(0); //pilha : ...,len(lista_2),0 
+        mv.visitJumpInsn(IF_ICMPEQ,end);//se o tamanho da lista 2 for igual a zero pula pro fim
+             
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitVarInsn(ALOAD,1); // pilha : ...,lista_r,indice,lista_2
+        mv.visitVarInsn(ILOAD,4); // pilha : ...,lista_r,indice,lista_2,indice
+        mv.visitVarInsn(ALOAD,0); //pilha : ...,lista_r,indice,lista_2,indice,lista_1
+        mv.visitInsn(ARRAYLENGTH);//pilha : ...,lista_r,indice,lista_2,indice,len(lista_1)
+        mv.visitInsn(ISUB);//pilha : ...,lista_r,indice,lista_2, indice - len(lista_1)
+        mv.visitInsn(IALOAD); //pilha : ...,lista_r,indice,lista_2[indice-len(lista_1)]
+        mv.visitInsn(IASTORE); // pilha : ..., 
 
 
-        mv.visitLabel(verify);
-        mv.visitVarInsn(ILOAD,2);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitLdcInsn(1);
-        mv.visitInsn(IADD);
-        mv.visitInsn(DUP);
-        mv.visitVarInsn(ISTORE,4);
-        mv.visitJumpInsn(IF_ICMPEQ,end);
-        mv.visitJumpInsn(GOTO,concat);
+        mv.visitLabel(verify); //pilha : ...,
+        mv.visitVarInsn(ILOAD,4);//pilha : ...,indice
+        mv.visitLdcInsn(1); //pilha : ...,indice, 1
+        mv.visitInsn(IADD); //pilha : ...,indice+1
+        mv.visitInsn(DUP); //pilha : ...,indice+1, indice+1
+        mv.visitVarInsn(ISTORE,4);//pilha : ...,indice+1
+        mv.visitVarInsn(ILOAD,2); //pilha : ...,indice+1,len(lista_r)
+        mv.visitJumpInsn(IF_ICMPGE,end);//se for igual ou maior pula para o fim
+        mv.visitJumpInsn(GOTO,concat); //se não continua
         
         mv.visitLabel(end);
         mv.visitVarInsn(ALOAD,3);
@@ -770,39 +817,169 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Label end = new Label();
 
         mv.visitLabel(concat);
-        mv.visitVarInsn(ALOAD,3);
-        mv.visitVarInsn(ILOAD,4);
 
-
-        mv.visitInsn(DUP);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitInsn(ARRAYLENGTH);
-        mv.visitJumpInsn(IF_ICMPGE,list2);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitInsn(DALOAD);
-        mv.visitInsn(DASTORE);
-        mv.visitJumpInsn(GOTO,verify);
+        mv.visitVarInsn(ILOAD,4); //carrega o indice
+        mv.visitVarInsn(ALOAD,0); //carrega a referencia da lista 1
+        mv.visitInsn(ARRAYLENGTH); //pega o tamanho da lista 1
+        mv.visitJumpInsn(IF_ICMPGE,list2); //verifica se o indice é maior que o tamanho se sim pula pra lista 2
         
-        mv.visitLabel(list2);
-        mv.visitVarInsn(ALOAD,1);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitVarInsn(ALOAD,0);
-        mv.visitInsn(ARRAYLENGTH);
-        mv.visitInsn(ISUB);
-        mv.visitInsn(DALOAD);
-        mv.visitInsn(DASTORE);
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+
+        mv.visitVarInsn(ALOAD,0); //se não carrega novamente a referencia da lista 1
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitInsn(DALOAD); //carrega o valor da lista 1 na pilha
+        mv.visitInsn(DASTORE); //guarda o valor na lista resultante 
+        mv.visitJumpInsn(GOTO,verify); //pula para verificação
+        
+        mv.visitLabel(list2); //elementos da lista 2
+        mv.visitVarInsn(ALOAD,1); //carrega referencia da lista 2 pilha : ...,lista_r,indice,lista_2
+        mv.visitInsn(ARRAYLENGTH); //pilha : ...,lista_r,indice, len(lista_2)
+        mv.visitLdcInsn(0); //pilha : ...,lista_r,indice, len(lista_2),0      
+        mv.visitJumpInsn(IF_ICMPEQ,end);//se o tamanho da lista 2 for igual a zero pula pro fim
+             
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitVarInsn(ALOAD,1); // pilha : ...,lista_r,indice,lista_2
+        mv.visitVarInsn(ILOAD,4); // pilha : ...,lista_r,indice,lista_2,indice
+        mv.visitVarInsn(ALOAD,0); //pilha : ...,lista_r,indice,lista_2,indice,lista_1
+        mv.visitInsn(ARRAYLENGTH);//pilha : ...,lista_r,indice,lista_2,indice,len(lista_1)
+        mv.visitInsn(ISUB);//pilha : ...,lista_r,indice,lista_2, indice - len(lista_1)
+        mv.visitInsn(DALOAD); //pilha : ...,lista_r,indice,lista_2[indice-len(lista_1)]
+        mv.visitInsn(DASTORE); // pilha : ..., 
 
 
-        mv.visitLabel(verify);
-        mv.visitVarInsn(ILOAD,2);
-        mv.visitVarInsn(ILOAD,4);
-        mv.visitLdcInsn(1);
-        mv.visitInsn(IADD);
-        mv.visitInsn(DUP);
-        mv.visitVarInsn(ISTORE,4);
-        mv.visitJumpInsn(IF_ICMPEQ,end);
-        mv.visitJumpInsn(GOTO,concat);
+        mv.visitLabel(verify); //pilha : ...,
+        mv.visitVarInsn(ILOAD,4);//pilha : ...,indice
+        mv.visitLdcInsn(1); //pilha : ...,indice, 1
+        mv.visitInsn(IADD); //pilha : ...,indice+1
+        mv.visitInsn(DUP); //pilha : ...,indice+1, indice+1
+        mv.visitVarInsn(ISTORE,4);//pilha : ...,indice+1
+        mv.visitVarInsn(ILOAD,2); //pilha : ...,indice+1,len(lista_r)
+        mv.visitJumpInsn(IF_ICMPGE,end);//se for igual ou maior pula para o fim
+        mv.visitJumpInsn(GOTO,concat); //se não continua
+        
+        mv.visitLabel(end);
+        mv.visitVarInsn(ALOAD,3);
+        
+        mv.visitInsn(ARETURN);
+        mv.visitEnd();
+        mv.visitMaxs(-1,-1);
+
+        mv = oldMV;
+    }
+    void concatStringListCreatStruct(){
+        MethodVisitor oldMV = mv;
+        mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC,"concatStringList","([Ljava/lang/String;[Ljava/lang/String;I[Ljava/lang/String;I)[Ljava/lang/String;",null,null);
+        
+        Label concat = new Label();
+        Label list2 = new Label();
+        Label verify = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(concat);
+
+        mv.visitVarInsn(ILOAD,4); //carrega o indice
+        mv.visitVarInsn(ALOAD,0); //carrega a referencia da lista 1
+        mv.visitInsn(ARRAYLENGTH); //pega o tamanho da lista 1
+        mv.visitJumpInsn(IF_ICMPGE,list2); //verifica se o indice é maior que o tamanho se sim pula pra lista 2
+        
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+
+        mv.visitVarInsn(ALOAD,0); //se não carrega novamente a referencia da lista 1
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitInsn(AALOAD); //carrega o valor da lista 1 na pilha
+        mv.visitInsn(AASTORE); //guarda o valor na lista resultante 
+        mv.visitJumpInsn(GOTO,verify); //pula para verificação
+        
+        mv.visitLabel(list2); //elementos da lista 2
+        mv.visitVarInsn(ALOAD,1); //carrega referencia da lista 2 pilha : ...,lista_r,indice,lista_2
+        mv.visitInsn(ARRAYLENGTH); //pilha : ...,lista_r,indice, len(lista_2)
+        mv.visitLdcInsn(0); //pilha : ...,lista_r,indice, len(lista_2),0      
+        mv.visitJumpInsn(IF_ICMPEQ,end);//se o tamanho da lista 2 for igual a zero pula pro fim
+             
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitVarInsn(ALOAD,1); // pilha : ...,lista_r,indice,lista_2
+        mv.visitVarInsn(ILOAD,4); // pilha : ...,lista_r,indice,lista_2,indice
+        mv.visitVarInsn(ALOAD,0); //pilha : ...,lista_r,indice,lista_2,indice,lista_1
+        mv.visitInsn(ARRAYLENGTH);//pilha : ...,lista_r,indice,lista_2,indice,len(lista_1)
+        mv.visitInsn(ISUB);//pilha : ...,lista_r,indice,lista_2, indice - len(lista_1)
+        mv.visitInsn(AALOAD); //pilha : ...,lista_r,indice,lista_2[indice-len(lista_1)]
+        mv.visitInsn(AASTORE); // pilha : ..., 
+
+
+        mv.visitLabel(verify); //pilha : ...,
+        mv.visitVarInsn(ILOAD,4);//pilha : ...,indice
+        mv.visitLdcInsn(1); //pilha : ...,indice, 1
+        mv.visitInsn(IADD); //pilha : ...,indice+1
+        mv.visitInsn(DUP); //pilha : ...,indice+1, indice+1
+        mv.visitVarInsn(ISTORE,4);//pilha : ...,indice+1
+        mv.visitVarInsn(ILOAD,2); //pilha : ...,indice+1,len(lista_r)
+        mv.visitJumpInsn(IF_ICMPGE,end);//se for igual ou maior pula para o fim
+        mv.visitJumpInsn(GOTO,concat); //se não continua
+        
+        mv.visitLabel(end);
+        mv.visitVarInsn(ALOAD,3);
+        
+        mv.visitInsn(ARETURN);
+        mv.visitEnd();
+        mv.visitMaxs(-1,-1);
+
+        mv = oldMV;
+    }
+    void concatBoolListCreatStruct(){
+        MethodVisitor oldMV = mv;
+        mv = cw.visitMethod(ACC_PUBLIC+ACC_STATIC,"concatBoolList","([Ljava/lang/Boolean;[Ljava/lang/Boolean;I[Ljava/lang/Boolean;I)[Ljava/lang/Boolean;",null,null);
+        
+        Label concat = new Label();
+        Label list2 = new Label();
+        Label verify = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(concat);
+
+        mv.visitVarInsn(ILOAD,4); //carrega o indice
+        mv.visitVarInsn(ALOAD,0); //carrega a referencia da lista 1
+        mv.visitInsn(ARRAYLENGTH); //pega o tamanho da lista 1
+        mv.visitJumpInsn(IF_ICMPGE,list2); //verifica se o indice é maior que o tamanho se sim pula pra lista 2
+        
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+
+        mv.visitVarInsn(ALOAD,0); //se não carrega novamente a referencia da lista 1
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitInsn(AALOAD); //carrega o valor da lista 1 na pilha
+        mv.visitInsn(AASTORE); //guarda o valor na lista resultante 
+        mv.visitJumpInsn(GOTO,verify); //pula para verificação
+        
+        mv.visitLabel(list2); //elementos da lista 2
+        mv.visitVarInsn(ALOAD,1); //carrega referencia da lista 2 pilha : ...,lista_r,indice,lista_2
+        mv.visitInsn(ARRAYLENGTH); //pilha : ...,lista_r,indice, len(lista_2)
+        mv.visitLdcInsn(0); //pilha : ...,lista_r,indice, len(lista_2),0      
+        mv.visitJumpInsn(IF_ICMPEQ,end);//se o tamanho da lista 2 for igual a zero pula pro fim
+             
+        mv.visitVarInsn(ALOAD,3); //carrega referencia da lista resultante
+        mv.visitVarInsn(ILOAD,4); //carrega o indice atual
+        mv.visitVarInsn(ALOAD,1); // pilha : ...,lista_r,indice,lista_2
+        mv.visitVarInsn(ILOAD,4); // pilha : ...,lista_r,indice,lista_2,indice
+        mv.visitVarInsn(ALOAD,0); //pilha : ...,lista_r,indice,lista_2,indice,lista_1
+        mv.visitInsn(ARRAYLENGTH);//pilha : ...,lista_r,indice,lista_2,indice,len(lista_1)
+        mv.visitInsn(ISUB);//pilha : ...,lista_r,indice,lista_2, indice - len(lista_1)
+        mv.visitInsn(AALOAD); //pilha : ...,lista_r,indice,lista_2[indice-len(lista_1)]
+        mv.visitInsn(AASTORE); // pilha : ..., 
+
+
+        mv.visitLabel(verify); //pilha : ...,
+        mv.visitVarInsn(ILOAD,4);//pilha : ...,indice
+        mv.visitLdcInsn(1); //pilha : ...,indice, 1
+        mv.visitInsn(IADD); //pilha : ...,indice+1
+        mv.visitInsn(DUP); //pilha : ...,indice+1, indice+1
+        mv.visitVarInsn(ISTORE,4);//pilha : ...,indice+1
+        mv.visitVarInsn(ILOAD,2); //pilha : ...,indice+1,len(lista_r)
+        mv.visitJumpInsn(IF_ICMPGE,end);//se for igual ou maior pula para o fim
+        mv.visitJumpInsn(GOTO,concat); //se não continua
         
         mv.visitLabel(end);
         mv.visitVarInsn(ALOAD,3);

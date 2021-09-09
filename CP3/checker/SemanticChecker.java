@@ -343,6 +343,11 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 ctx.getStart().getLine());
                 System.exit(1);
             }
+            else if(listType.equals(new Inner(LIST_TYPE,VOID_TYPE))){
+                System.err.printf("SEMANTIC ERROR(%d): List can be declared with type void\n",
+                ctx.getStart().getLine());
+                System.exit(1);
+            }
             lastType = listType;
         }
         return null;
@@ -388,12 +393,16 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         if(lt.getType() == INT_TYPE && rt.getType()!= INT_TYPE) typeError(line,"=",lt,rt);
         if(lt.getType() == VOID_TYPE && rt.getType()!= VOID_TYPE) typeError(line,"=",lt,rt);
         if(lt.getType() == LIST_TYPE){
-            if(rt.getType() == LIST_TYPE){ 
-                if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
-                if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
-                if(lt.getInner() == INT_TYPE && (rt.getInner()!=INT_TYPE && rt.getInner()!=NO_TYPE)) typeError(line,"=",lt,rt);
-                if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
-                if(lt.getInner() == VOID_TYPE && rt.getInner()!=VOID_TYPE && rt.getInner()!=NO_TYPE) typeError(line,"=",lt,rt);
+            if(rt.getType() == LIST_TYPE){
+                if(rt.getInner() == VOID_TYPE) {
+                    r = new AST(r.kind,r.intData,new Inner(LIST_TYPE,lt.getInner()));
+                    rt = r.type;
+                }  
+                if(lt.getInner() == BOOL_TYPE && rt.getInner()!=BOOL_TYPE ) typeError(line,"=",lt,rt);
+                if(lt.getInner() == STR_TYPE && rt.getInner()!=STR_TYPE ) typeError(line,"=",lt,rt);
+                if(lt.getInner() == INT_TYPE && (rt.getInner()!=INT_TYPE)) typeError(line,"=",lt,rt);
+                if(lt.getInner() == DOUBLE_TYPE && rt.getInner()!=DOUBLE_TYPE) typeError(line,"=",lt,rt);
+                if(lt.getInner() == VOID_TYPE && rt.getInner()!=VOID_TYPE) typeError(line,"=",lt,rt);
             }
             else if(rt.getType() != LIST_TYPE){
                 typeError(line,"=",lt,rt);
@@ -1103,42 +1112,33 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
            return node1;
         }
         
-        int i = ctx.additiveOperator().size(); //pega o tamanho das somas 
-        AST old_node2 = null; 
-        while(i>=1){ //É uma operação de adição 
-            AST op = visit(ctx.additiveOperator(i-1)); //pega o operador de adição
-          
+        int i = 0; //pega o tamanho das somas 
+        AST old_node1 = node1; 
 
-            if (i == ctx.additiveOperator().size()){ //se for o ultimo
-                AST node2 = visit(ctx.multiplicativeExpression(i)); //pega o ultimo valor
-                AST nd1 = visit(ctx.multiplicativeExpression(i-1)); //pega o penultimo valor
+        while(i<ctx.additiveOperator().size()){ //É uma operação de adição 
+            AST op = visit(ctx.additiveOperator(i)); //pega o operador de adição
 
-                //realiza unificação
-                Type lt = nd1.type.getType();
-                Type rt = node2.type.getType();
-                Unif unif;
-
-                if(op.kind == PLUS_NODE){
-                    unif = lt.unifyPlus(rt);
-                }
-                else {
-                    unif = lt.unifyOtherArith(rt);
-                }
-                if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
-                
-                //realiza as conversões
-                nd1 = Conv.createConvNode(unif.lc,nd1);
-                node2 = Conv.createConvNode(unif.rc,node2);
-                //atualiza o nó raiz
-                old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,node2.type.getInner()),nd1,node2);
-            }
-            else { //se não for o ultimo
-            AST nd1 = visit(ctx.multiplicativeExpression(i-1)); //vai pegando o valor anterior
+            AST nd2 = visit(ctx.multiplicativeExpression(i+1)); //pega o segundo operador
 
             //Faz a unificação
-            Type lt = nd1.type.getType();   
-            Type rt = old_node2.type.getType();
+            Type lt = old_node1.type.getType();   
+            Type rt = nd2.type.getType();
             Unif unif;
+
+            if(lt == LIST_TYPE && rt == LIST_TYPE){
+                Type ltInner = old_node1.type.getInner();
+                Type rtInner = nd2.type.getInner();
+
+                if(ltInner == VOID_TYPE && rtInner!=VOID_TYPE){
+                    old_node1 = new AST(old_node1.kind,old_node1.intData,new Inner(LIST_TYPE,rtInner));
+                }
+                else if(ltInner != VOID_TYPE && rtInner == VOID_TYPE){
+                    nd2 = new AST(nd2.kind,nd2.intData,new Inner(LIST_TYPE,ltInner));
+                }
+                else if (ltInner!=VOID_TYPE && rtInner!= VOID_TYPE && ltInner!=rtInner) {
+                    typeError(ctx.getStart().getLine(),op.kind.toString(),old_node1.type,nd2.type);
+                }
+            }
 
             if(op.kind == PLUS_NODE){
                 unif = lt.unifyPlus(rt);
@@ -1146,18 +1146,18 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             else {
                 unif = lt.unifyOtherArith(rt);
             }
-            if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+            if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),old_node1.type,nd2.type);
             //Conversão
-            nd1 = Conv.createConvNode(unif.lc,nd1);
-            old_node2 = Conv.createConvNode(unif.rc,old_node2);
+            old_node1 = Conv.createConvNode(unif.lc,old_node1);
+            nd2 = Conv.createConvNode(unif.rc,nd2);
 
             //Atualiza o nó raiz
-            old_node2 = AST.newSubtree(op.kind,new Inner(unif.type,old_node2.type.getInner()),nd1,old_node2);
+            old_node1 = AST.newSubtree(op.kind,new Inner(unif.type,nd2.type.getInner()),old_node1,nd2);
 
-            }
-            i--;
+            i++;
         }
-        return old_node2;
+
+        return old_node1;
     } 
 
     //Operadores +, - 
@@ -1181,52 +1181,34 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
            return node1;
         }
         
-        int i = ctx.multiplicativeOperator().size();
-        AST old_node2 = null;
-        while(i>=1){
-            AST op = visit(ctx.multiplicativeOperator(i-1));
+        int i = 0; 
+        AST old_node1 = node1;
+        while(i<ctx.multiplicativeOperator().size()){
+            AST op = visit(ctx.multiplicativeOperator(i));
           
+            AST nd2 = visit(ctx.unaryExpression(i+1));
 
-            if (i == ctx.multiplicativeOperator().size()){
-                AST node2 = visit(ctx.unaryExpression(i));
-                AST nd1 = visit(ctx.unaryExpression(i-1));
-
-                Type lt = nd1.type.getType();
-                Type rt = node2.type.getType();
-                Unif unif;
-
-                unif = lt.unifyOtherArith(rt);
-                Type tipo = NO_TYPE;
-                if(op.kind==OVER_INT_NODE) tipo = INT_TYPE;
-                else if(unif.type == NO_TYPE)typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,node2.type);
-                else tipo = unif.type;
-                nd1 = Conv.createConvNode(unif.lc,nd1);
-                node2 = Conv.createConvNode(unif.rc,node2);
-
-                old_node2 = AST.newSubtree(op.kind,new Inner(tipo,node2.type.getInner()),nd1,node2);
-            }
-            else {
-            AST nd1 = visit(ctx.unaryExpression(i-1));
-
-            Type lt = nd1.type.getType();
-            Type rt = old_node2.type.getType();
+            Type lt = old_node1.type.getType();
+            Type rt = nd2.type.getType();
             Unif unif;
 
         
             unif = lt.unifyOtherArith(rt);
             Type tipo = NO_TYPE;
+
             if(op.kind==OVER_INT_NODE) tipo = INT_TYPE;
-            else if(unif.type == NO_TYPE) typeError(ctx.multiplicativeOperator(i-1).getStart().getLine(),op.kind.toString(),nd1.type,old_node2.type);
+            
+            else if(unif.type == NO_TYPE) typeError(ctx.getStart().getLine(),op.kind.toString(),old_node1.type,nd2.type);
             else tipo = unif.type;
-            nd1 = Conv.createConvNode(unif.lc,nd1);
-            old_node2 = Conv.createConvNode(unif.rc,old_node2);
+            
+            old_node1 = Conv.createConvNode(unif.lc,old_node1);
+            nd2 = Conv.createConvNode(unif.rc,nd2);
 
-            old_node2 = AST.newSubtree(op.kind,new Inner(tipo,old_node2.type.getInner()),nd1,old_node2);
+            old_node1 = AST.newSubtree(op.kind,new Inner(tipo,nd2.type.getInner()),old_node1,nd2);
 
-            }
-            i--;
+            i++;
         }
-        return old_node2;
+        return old_node1;
     }
     // *, / , % , ~/
     @Override
@@ -1548,7 +1530,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         AST rt = AST.newSubtree(LIST_VAL_NODE,new Inner(LIST_TYPE,NO_TYPE)); //Cria o nó raiz como LIST_VAL_NODE do tipo LIST
 
         int i = 0;
-        Type startType=NO_TYPE;
+        Type startType=VOID_TYPE;
         while(ctx.element(i)!=null){
             
             AST node = visit(ctx.element(i++)); //caminha pelos outros elementos 
@@ -1586,7 +1568,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         
         } 
         
-        return new AST(LIST_VAL_NODE,0,new Inner(LIST_TYPE,NO_TYPE));
+        return new AST(LIST_VAL_NODE,0,new Inner(LIST_TYPE,VOID_TYPE));
     }
      void printTables() {
             System.out.print("\n\n");
