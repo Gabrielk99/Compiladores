@@ -228,8 +228,6 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitAssign(AST node){
-        visit(node.getChild(0)); // Visita variavel
-
         Key k = node.getChild(0).key;
 
         visit(node.getChild(1)); // Visita a expressao da atribuicao
