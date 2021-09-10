@@ -1,24 +1,6 @@
-/*void printaAlgo(){
-    print("rapaz parece funcionar!");
-    void fazAlgo(bool x,double y){
-        print(x);
-        print(y);
-    }
-    fazAlgo(true,1);
-    return;
-}
-
 
 void main(){
-    print("sera que funciona?");
-    printaAlgo();
-}
-
- */
-int k = 2;
-
-void main(){
-    // bool v = true || true & false;
+    /* // bool v = true || true & false;
     // if(v && true && true) {
     //     print("to no then");
     // }else {
@@ -47,5 +29,13 @@ void main(){
     // List <double> y = [4.2];
     // List <double> z = [1.3,12.4];
     // print(y+z+[13.13,312.3,1.24]);
-    // //print([]+y+z+[4.5,1.3,0.1241,14.1]); corrigir
+    // //print([]+y+z+[4.5,1.3,0.1241,14.1]); corrigir */
+
+    int i = 0, m =5;
+
+    if(true){
+        i = i + 10 + m;
+        print(i);
+    }
+
 }
