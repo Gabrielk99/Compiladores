@@ -233,6 +233,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Key k = node.getChild(0).key;
 
         visit(node.getChild(1)); // Visita a expressao da atribuicao
+
         mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
                 typeDescriptor(vt.getType(k)));
 
@@ -376,7 +377,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
             //concatenar string
             case STR_TYPE:
-                mv.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","concat","(Ljava/lang/String;)Ljava/lang/String;");
+                mv.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","concat","(Ljava/lang/String;)Ljava/lang/String;",false);
                 break;
              
                 
@@ -713,6 +714,18 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitWhile(AST node){
+        Label start = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(start); // Começo do while
+        visit(node.getChild(0)); // Visita expressão antes de executar o loop
+        mv.visitJumpInsn(IFEQ, end); //Se for falso, encerra o while
+
+        visit(node.getChild(1));  // se for verdadeiro, visita o corpo
+
+        mv.visitJumpInsn(GOTO, start);
+        mv.visitLabel(end);
+
         return null;
     }
     @Override
