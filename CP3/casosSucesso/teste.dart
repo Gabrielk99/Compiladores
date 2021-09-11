@@ -6,7 +6,7 @@ void main(){
         int k = 2;
         k = k + 5;
         i = 11;
-        print(i);
+        //print(i);
     }
     
 }

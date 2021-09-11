@@ -320,12 +320,18 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitForPart(AST node){
         int i = 0;
+        boolean condition = false; // flag para indicar se o for possui condição de parada
 
         while(node.getChild(i) != null) { // quando for a expressao lógica deixará um valor na pilha
             AST child = node.getChild(i++);
             visit(child);
+
+            if(child.type.getType() == BOOL_TYPE) // há condição de parada
+                condition = true;
         }
-        // FALTA TRATAR QUANDO NÃO TEM CONDIÇÃO DE PARADA
+
+        if(!condition) // coloca valor verdadeira na pilha, já que o loop não tem condição de parada
+            System.out.println("oi");//mv.visitLdcInsn(1);
         return null;
     }
 
