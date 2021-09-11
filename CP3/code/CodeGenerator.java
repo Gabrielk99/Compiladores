@@ -331,7 +331,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         }
 
         if(!condition) // coloca valor verdadeira na pilha, já que o loop não tem condição de parada
-            System.out.println("oi");//mv.visitLdcInsn(1);
+            mv.visitLdcInsn(1);
         return null;
     }
 
