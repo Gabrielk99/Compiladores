@@ -210,10 +210,10 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         if (node.getChild(1)!=null) { // Variavel foi inicializada com valor
             Key k = node.getChild(0).key;
-
             visit(node.getChild(1));
+            String descriptor = typeDescriptor(vt.getType(k));
             mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
-                    typeDescriptor(vt.getType(k)));
+                   descriptor);
         }
         return null;
     }
@@ -232,8 +232,10 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         visit(node.getChild(1)); // Visita a expressao da atribuicao
 
+        String descriptor = typeDescriptor(vt.getType(k));
+        
         mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
-                typeDescriptor(vt.getType(k)));
+                descriptor);
 
         return null;
     }
@@ -625,38 +627,90 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         return null;
     }
     @Override
-    protected Void visitEQ(AST node){
-        visit(node.getChild(0));
-        visit(node.getChild(1));
+    protected Void visitEQ(AST node){ 
         Label EQ = new Label();
         Label end = new Label();
+        typing.Type tipo = node.getChild(1).type.getType();
         switch(node.getChild(0).type.getType()){
             case INT_TYPE:
-            case BOOL_TYPE:                
-                mv.visitJumpInsn(IF_ICMPEQ,EQ);
-                mv.visitLdcInsn(false);
-                mv.visitJumpInsn(GOTO,end);
+            case BOOL_TYPE:
+                if(tipo==STR_TYPE || tipo==LIST_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Integer");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(0));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Integer","<init>","(I)V",false);
+                    visit(node.getChild(1));
 
-                mv.visitLabel(EQ);
-                mv.visitLdcInsn(true);
-                mv.visitLabel(end);
-                break;
+                    mv.visitJumpInsn(IF_ACMPEQ,EQ);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(EQ);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }     
+                else{
+                    visit(node.getChild(0));    
+                    visit(node.getChild(1));            
+                    mv.visitJumpInsn(IF_ICMPEQ,EQ);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(EQ);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }
             case DOUBLE_TYPE:
-                mv.visitInsn(DCMPL);
+                if(tipo==STR_TYPE || tipo==LIST_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Double");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(0));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Double","<init>","(D)V",false);
+                    visit(node.getChild(1));
 
-                mv.visitJumpInsn(IFEQ,EQ);
-                mv.visitLdcInsn(false);
-                mv.visitJumpInsn(GOTO,end);
+                    mv.visitJumpInsn(IF_ACMPEQ,EQ);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
 
-                mv.visitLabel(EQ);
-                mv.visitLdcInsn(true);
+                    mv.visitLabel(EQ);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }
+                else{   
+                    visit(node.getChild(0));
+                    visit(node.getChild(1));
+                    mv.visitInsn(DCMPL);
 
-                mv.visitLabel(end);
-                
-                break;
+                    mv.visitJumpInsn(IFEQ,EQ);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(EQ);
+                    mv.visitLdcInsn(true);
+
+                    mv.visitLabel(end);
+                    
+                    break;
+                }
             case STR_TYPE:
             case LIST_TYPE:
-
+                visit(node.getChild(0));
+                if(tipo==INT_TYPE || tipo==BOOL_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Integer");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(1));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Integer","<init>","(I)V",false);  
+                }
+                else if(tipo == DOUBLE_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Double");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(1));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Double","<init>","(D)V",false);  
+                }
+                else visit(node.getChild(1));
                 mv.visitJumpInsn(IF_ACMPEQ,EQ);
                 mv.visitLdcInsn(false);
                 mv.visitJumpInsn(GOTO,end);
@@ -671,39 +725,89 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitNEQ(AST node){
-        visit(node.getChild(0));
-        visit(node.getChild(1));
         Label Neq = new Label();
         Label end = new Label();
-
+        typing.Type tipo = node.getChild(1).type.getType();
         switch(node.getChild(0).type.getType()){
             case INT_TYPE:
-            case BOOL_TYPE:                
-                
-                mv.visitJumpInsn(IF_ICMPNE,Neq);
-                mv.visitLdcInsn(false);
-                mv.visitJumpInsn(GOTO,end);
+            case BOOL_TYPE:
+                if(tipo==STR_TYPE || tipo==LIST_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Integer");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(0));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Integer","<init>","(I)V",false);
+                    visit(node.getChild(1));
 
-                mv.visitLabel(Neq);
-                mv.visitLdcInsn(true);
-                mv.visitLabel(end);
-                break;
+                    mv.visitJumpInsn(IF_ACMPNE,Neq);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(Neq);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }     
+                else{
+                    visit(node.getChild(0));    
+                    visit(node.getChild(1));            
+                    mv.visitJumpInsn(IF_ICMPNE,Neq);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(Neq);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }
             case DOUBLE_TYPE:
-                mv.visitInsn(DCMPL);
+                if(tipo==STR_TYPE || tipo==LIST_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Double");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(0));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Double","<init>","(D)V",false);
+                    visit(node.getChild(1));
 
-                mv.visitJumpInsn(IFNE,Neq);
-                mv.visitLdcInsn(false);
-                mv.visitJumpInsn(GOTO,end);
+                    mv.visitJumpInsn(IF_ACMPNE,Neq);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
 
-                mv.visitLabel(Neq);
-                mv.visitLdcInsn(true);
+                    mv.visitLabel(Neq);
+                    mv.visitLdcInsn(true);
+                    mv.visitLabel(end);
+                    break;
+                }
+                else{   
+                    visit(node.getChild(0));
+                    visit(node.getChild(1));
+                    mv.visitInsn(DCMPL);
 
-                mv.visitLabel(end);
-                
-                break;
+                    mv.visitJumpInsn(IFNE,Neq);
+                    mv.visitLdcInsn(false);
+                    mv.visitJumpInsn(GOTO,end);
+
+                    mv.visitLabel(Neq);
+                    mv.visitLdcInsn(true);
+
+                    mv.visitLabel(end);
+                    
+                    break;
+                }
             case STR_TYPE:
             case LIST_TYPE:
-
+                visit(node.getChild(0));
+                if(tipo==INT_TYPE || tipo==BOOL_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Integer");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(1));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Integer","<init>","(I)V",false);  
+                }
+                else if(tipo == DOUBLE_TYPE){
+                    mv.visitTypeInsn(NEW,"java/lang/Double");
+                    mv.visitInsn(DUP);
+                    visit(node.getChild(1));
+                    mv.visitMethodInsn(INVOKESPECIAL,"java/lang/Double","<init>","(D)V",false);  
+                }
+                else visit(node.getChild(1));
                 mv.visitJumpInsn(IF_ACMPNE,Neq);
                 mv.visitLdcInsn(false);
                 mv.visitJumpInsn(GOTO,end);
@@ -768,7 +872,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitVarDecl(AST node){
         Key k = node.key;
-        cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),typeDescriptor(vt.getType(k)),null,null).visitEnd();//Escreve o atributo (a variável)
+        String descriptor = typeDescriptor(vt.getType(k));
+        cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),descriptor,null,null).visitEnd();//Escreve o atributo (a variável)
                                                                                                             //visitEnd(); sinaliza a finalização do campo
         return null;
     }
@@ -801,8 +906,29 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     protected Void visitVarUse(AST node){
         Key k = node.key; //pega a chave de vt
         String name = vt.getName(k).concat(Integer.toString(k.getId())); //pega o nome da variável
+        String descriptor = typeDescriptor(vt.getType(k));
 
-        mv.visitFieldInsn(GETSTATIC,this.name,name,typeDescriptor(vt.getType(k))); //pega o atributo da classe e coloca o valor na pilha
+        if(node.getChild(0)!=null){          
+            mv.visitFieldInsn(GETSTATIC,this.name,name,descriptor); //pega o atributo da classe e coloca o valor na pilha
+            visit(node.getChild(0));
+            switch(node.type.getType()){
+                case INT_TYPE:    
+                    mv.visitInsn(IALOAD);
+                    break;
+                case DOUBLE_TYPE:
+                    mv.visitInsn(DALOAD);
+                    break;
+                case STR_TYPE:
+                    mv.visitInsn(AALOAD);
+                    break;
+                case BOOL_TYPE:
+                    mv.visitInsn(AALOAD);
+                    mv.visitMethodInsn(INVOKEVIRTUAL,"java/lang/Boolean","booleanValue","()Z",false);
+                    break;
+
+            }
+        }
+        else  mv.visitFieldInsn(GETSTATIC,this.name,name,descriptor); //pega o atributo da classe e coloca o valor na pilha
         return null;
     }
     //realiza a chamada de metodo
@@ -890,12 +1016,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         int length = node.getChildren().size(); //tamanho da lista
         mv.visitLdcInsn(length); //coloca o tamanho na pilha
         
-        //Como bool é int, e precisamos trabalhar com concatenação de lista de booleanos
-        //Ao invés do tipo primitivo nós criamos a lista como Objeto
-        //Dessa forma conseguimos manipular livremente
-        if(node.type.getInner()==BOOL_TYPE) mv.visitMultiANewArrayInsn("[Ljava/lang/Boolean;",1); 
-        
-        else mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
+        mv.visitMultiANewArrayInsn(typeDescriptor(node.type),1);//cria uma lista do tipo descrito com o tamanho que estava no topo da lista
                                                                 //topo da pilha é agora a referência para a lista
         mv.visitVarInsn(ASTORE,1); //Guardar a referencia da lista localmente (operações de atribuição some com a referencia da pilha)
         for(int i = 0; i<length;i++){
@@ -967,7 +1088,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     case DOUBLE_TYPE : return "[D";
                     case INT_TYPE : return "[I";
                     case STR_TYPE : return "[Ljava/lang/String;";
-                    case BOOL_TYPE : return "[Z";
+                    case BOOL_TYPE : return "[Ljava/lang/Boolean;";
                     case VOID_TYPE : return "[I";
                 }
             default:

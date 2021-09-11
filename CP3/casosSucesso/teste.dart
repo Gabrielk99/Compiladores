@@ -2,15 +2,13 @@
 int k = 2;
 
 void main(){
-    for (int i = 0; i<10; i += 1){
-        int k = 2;
-        k = k + 5;
-        i = 11;
-        //print(i);
-    }
-    
-    if(true){
-        x=4;
-    }
+    List <int> x =[1,2];
+    List <double> v = [1.3,1.4];
+    List <String> z = ["da","da"];
+    List <bool> c = [true,false];
+
+   if(c[0]||c[1]){
+       print(x[1]+v[0]*v[1]-x[0]);
+   }
 }
 

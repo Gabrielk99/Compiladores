@@ -1009,17 +1009,30 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
                 if (child.kind==FOR_EXP_NODE){
                     node = child;
                     if(child2==null){
-                        child1 = child1New;
+                        //child1 = child1New;
                         AST block = new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE));
 
                         for(AST n:node.getChildren()){
                             block.addChild(n);
                         }
-                        return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1,block);
+                        child2=block;
+                       // return AST.newSubtree(FOR_NODE,new Inner(NO_TYPE,NO_TYPE),child1,block);
                     }
                     else {
-                        for(AST n:node.getChildren()){
-                            child2.addChild(n);
+                        if(child2.kind!=BLOCK_NODE){
+                            
+                            AST block = new AST(BLOCK_NODE,0,new Inner(NO_TYPE,NO_TYPE));
+                            block.addChild(child2);
+                            for(AST n:node.getChildren()){
+                                block.addChild(n);
+                            }
+                            child2=block;
+                            
+                        }
+                        else {
+                            for(AST n:node.getChildren()){
+                                child2.addChild(n);
+                            }
                         }
                     }
                 }
@@ -1303,7 +1316,13 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         Type lt = child1.type.getType();
         Type rt = child2.type.getType();
         Unif unif = lt.unifyEquals(rt);
-
+            
+        if((lt==INT_TYPE && rt==DOUBLE_TYPE)||(lt==BOOL_TYPE && rt==DOUBLE_TYPE)){
+            child1 = Conv.createConvNode(I2D,child1);
+        }
+        else if((lt==DOUBLE_TYPE && rt==INT_TYPE)||(lt==DOUBLE_TYPE && rt==BOOL_TYPE)){
+            child2 = Conv.createConvNode(I2D,child2);
+        }
         if (unif.type == NO_TYPE)
             typeError(ctx.getStart().getLine(), operator, child1.type, child2.type);
 
