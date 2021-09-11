@@ -301,16 +301,45 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitFor(AST node){
+        Label start = new Label();
+        Label end = new Label();
+
+        // Corpo do for
+        mv.visitLabel(start);
+        visit(node.getChild(0)); // Visita as partes do for
+        mv.visitJumpInsn(IFEQ,end); // se a condição for falsa, encera
+
+        int i = 1;
+        while(node.getChild(i) != null)
+            visit(node.getChild(i++));
+
+        mv.visitJumpInsn(GOTO,start); // pula pra um novo loop do for
+        mv.visitLabel(end);
         return null;
     }
     @Override
     protected Void visitForPart(AST node){
+        int i = 0;
+        boolean condition = false; // flag para indicar se o for possui condição de parada
+
+        while(node.getChild(i) != null) { // quando for a expressao lógica deixará um valor na pilha
+            AST child = node.getChild(i++);
+            visit(child);
+
+            if(child.type.getType() == BOOL_TYPE) // há condição de parada
+                condition = true;
+        }
+
+        if(!condition) // coloca valor verdadeira na pilha, já que o loop não tem condição de parada
+            mv.visitLdcInsn(1);
         return null;
     }
+
     @Override
     protected Void visitForExp(AST node){
         return null;
     }
+
     @Override
     protected Void visitPlus(AST node){
         visit(node.getChild(0));
