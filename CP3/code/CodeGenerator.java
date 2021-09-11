@@ -28,7 +28,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     public final FuncTable ft; //tabela de funções
     public final StrTable st; //tabela de strings
     public final String name; //nome do arquivo de teste (usado para gerar o binario final name.class)
-    public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+    public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES|ClassWriter.COMPUTE_MAXS);
     
     MethodVisitor mv; //Variável global para construir funções
 
