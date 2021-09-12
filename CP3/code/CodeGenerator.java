@@ -229,13 +229,40 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitAssign(AST node){
         Key k = node.getChild(0).key;
-
-        visit(node.getChild(1)); // Visita a expressao da atribuicao
-
         String descriptor = typeDescriptor(vt.getType(k));
-        
-        mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
-                descriptor);
+
+        if(vt.getType(k).getType() == LIST_TYPE) {
+            mv.visitFieldInsn(GETSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())), descriptor); // Coloca referencia da lista na pilha
+            visit(node.getChild(0).getChild(0)); // (no lista -> no indice) coloca indice na pilha
+            visit(node.getChild(1)); // Visita a expressao da atribuicao (valor resultante fica na pilha)
+
+            // PILHA:  --> ..., lista, indice, valor
+
+            switch (node.type.getInner()) { //o tipo de ASTORE muda para o tipo da lista
+                case DOUBLE_TYPE:
+                    mv.visitInsn(DASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+                case STR_TYPE:
+                    mv.visitInsn(AASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+                case BOOL_TYPE:
+                    mv.visitVarInsn(ISTORE, 2); //guarda o valor primitivo
+                    mv.visitTypeInsn(NEW, "java/lang/Boolean"); //cria instancia de Boolean
+                    mv.visitInsn(DUP); //duplica para ter a referencia de retorno
+                    mv.visitVarInsn(ILOAD, 2); //carrega o valor primitivo
+                    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Boolean", "<init>", "(Z)V", false); //chama o construtor
+                    mv.visitInsn(AASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+                default:
+                    mv.visitInsn(IASTORE); //guarda o valor em lista[indice], pilha --> ...
+                    break;
+            }
+        }else {
+            visit(node.getChild(1)); // Visita a expressao da atribuicao (valor resultante fica na pilha)
+
+            mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
+                    descriptor);
+        }
 
         return null;
     }
@@ -306,9 +333,13 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Label start = new Label();
         Label end = new Label();
 
+        AST for_parts = node.getChild(0);
+        if(for_parts.getChild(0) != null && for_parts.getChild(0).type.getType() == NO_TYPE)
+            visit(for_parts.getChild(0));   // visita a primeira parte do for que é atribuição/declaração de variavel
+
         // Corpo do for
         mv.visitLabel(start);
-        visit(node.getChild(0)); // Visita as partes do for
+        visit(for_parts); // Visita a condição de parada
         mv.visitJumpInsn(IFEQ,end); // se a condição for falsa, encera
 
         int i = 1;
@@ -320,16 +351,17 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         return null;
     }
     @Override
-    protected Void visitForPart(AST node){
+    protected Void visitForPart(AST node){ // visita apenas a condição de parada
         int i = 0;
         boolean condition = false; // flag para indicar se o for possui condição de parada
 
-        while(node.getChild(i) != null) { // quando for a expressao lógica deixará um valor na pilha
+        while(node.getChild(i) != null){
             AST child = node.getChild(i++);
-            visit(child);
 
-            if(child.type.getType() == BOOL_TYPE) // há condição de parada
+            if(child.type.getType() == BOOL_TYPE){
                 condition = true;
+                visit(child);
+            }
         }
 
         if(!condition) // coloca valor verdadeira na pilha, já que o loop não tem condição de parada
