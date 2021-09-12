@@ -31,6 +31,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES|ClassWriter.COMPUTE_MAXS);
     
     MethodVisitor mv; //Variável global para construir funções
+    boolean incrementalValueIsneed=false; //para saber quando colocar o valor de um ++ ou -- na pilha
 
     //Construtor
     public CodeGenerator(StrTable st, VarTable vt, FuncTable ft,String name){
@@ -228,6 +229,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitAssign(AST node){
+
+        incrementalValueIsneed=true;//Numa atribuição se há incremental, o valor na pilha não faz mal.
+
         Key k = node.getChild(0).key;
         String descriptor = typeDescriptor(vt.getType(k));
 
@@ -264,8 +268,10 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     descriptor);
         }
 
+        incrementalValueIsneed=false;//Sair é equivalente a não possuir.
         return null;
     }
+    //todos os nó abaixo foram reduzidos a atribuições comuns com expressões como valores, resolvido a cima.
     @Override
     protected Void visitAssignTimes(AST node){
         return null;
@@ -519,6 +525,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitLT(AST node){
         
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         visit(node.getChild(0));
         visit(node.getChild(1));
         Label LT = new Label();
@@ -547,10 +555,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+        incrementalValueIsneed=false;
         return null;
     }
     @Override
     protected Void visitGT(AST node){
+
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         visit(node.getChild(0));
         visit(node.getChild(1));
         Label GT = new Label();
@@ -582,10 +594,16 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+
+        incrementalValueIsneed=false;
+
         return null;
     }
     @Override
     protected Void visitLEQ(AST node){
+
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         visit(node.getChild(0));
         visit(node.getChild(1));
         Label LEQ = new Label();
@@ -615,10 +633,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+        incrementalValueIsneed=false;
         return null;
     }
     @Override
     protected Void visitGEQ(AST node){
+
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         visit(node.getChild(0));
         visit(node.getChild(1));
         Label GEQ = new Label();
@@ -648,6 +670,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+        incrementalValueIsneed=false;
         return null;
     }
     @Override
@@ -660,6 +683,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitEQ(AST node){ 
+
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         Label EQ = new Label();
         Label end = new Label();
         typing.Type tipo = node.getChild(1).type.getType();
@@ -753,10 +779,14 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+        incrementalValueIsneed=false;
         return null;
     }
     @Override
     protected Void visitNEQ(AST node){
+
+        incrementalValueIsneed=true;//Sempre que tiver em comparação incremental expressão é salvo então
+
         Label Neq = new Label();
         Label end = new Label();
         typing.Type tipo = node.getChild(1).type.getType();
@@ -850,6 +880,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 break;
 
         }
+        incrementalValueIsneed=false;
         return null;
     }
     @Override
@@ -893,6 +924,17 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitDoWhile(AST node){
+        Label start = new Label();
+        Label end = new Label();
+
+        mv.visitLabel(start);//do
+        visit(node.getChild(0));//body
+        
+        visit(node.getChild(1));//expressão booleana do loop na pilha
+        mv.visitJumpInsn(IFNE,start);//se for verdadeiro vai realizar novamente o loop
+
+        mv.visitLabel(end);
+        
         return null;
     }
     @Override
@@ -967,7 +1009,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitFuncUse(AST node){
 
-   
+        incrementalValueIsneed=true; //Quando usamos ++ ou -- em um parametro de função
         Key k = node.key;
         if(ft.getName(k).equals("print")){ //função bultin
             if(node.getChild(0).type.getType()==LIST_TYPE){ //tratamento diferente pra listas (conversão pra String)
@@ -978,6 +1020,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     //Converte a lista para String
                     mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","(".concat(typeDescriptor(tipo)).concat(")Ljava/lang/String;"),false);
                     mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
+                    incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
                     return null;
                 }
                 else{
@@ -989,6 +1032,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                     //mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/List","toString","()Ljava/lang/String;",false);
                     mv.visitMethodInsn(INVOKESTATIC,"java/util/Arrays","toString","([Ljava/lang/Object;)Ljava/lang/String;",false);
                     mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(Ljava/lang/String;)V",false);//printa a lista System.out.println(valor)
+                    incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
                     return null;
                 }
             }
@@ -998,6 +1042,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                 Inner tipo = node.getChild(0).type; //pega o tipo
                 //printa o valor
                 mv.visitMethodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(".concat(typeDescriptor(tipo)).concat(")V"),false);
+                incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
                 return null;
             }   
         }
@@ -1005,21 +1050,25 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         else if (ft.getName(k).equals("readLine")){
             mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
             mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","next","()Ljava/lang/String;",false);
+            incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
             return null;
         }
         else if (ft.getName(k).equals("readInt")){
             mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
             mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextInt","()I",false);
+            incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
             return null;
         }
         else if (ft.getName(k).equals("readDouble")){
             mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
             mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextDouble","()D",false);
+            incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
             return null;
         }
         else if (ft.getName(k).equals("readBool")){
             mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
             mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextBoolean","()Z",false);
+            incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
             return null;
         }
         else{ //não bultin
@@ -1032,6 +1081,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
             mv.visitMethodInsn(INVOKESTATIC,this.name,ft.getName(k).concat(Integer.toString(k.getId())),metodoDescriptor(parametros,tipoRetorno),false);
         }
 
+        incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
         return null;
     }
     @Override
@@ -1085,18 +1135,174 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     }
     @Override
     protected Void visitPlusPostInc(AST node){
+        AST var = node.getChild(0);
+        
+        if(incrementalValueIsneed) visit(var);//coloca o valor na pilha pra usar na expressão
+
+        Key k = var.key;
+        String descriptor = typeDescriptor(vt.getType(k));
+
+        //pega a referencia da variável
+        mv.visitFieldInsn(GETSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+        
+        switch(vt.getType(k).getType()){
+            case INT_TYPE:
+                mv.visitInsn(ICONST_1);
+                mv.visitInsn(IADD);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DCONST_1);
+                mv.visitInsn(DADD);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case LIST_TYPE:
+                visit(var.getChild(0));
+                if(vt.getType(k).getInner()==INT_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(IALOAD);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(IADD);
+                    mv.visitInsn(IASTORE);
+                }
+                else if(vt.getType(k).getInner()==DOUBLE_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(DALOAD);
+                    mv.visitInsn(DCONST_1);
+                    mv.visitInsn(DADD);
+                    mv.visitInsn(DASTORE);
+                }
+                break;
+        }
+
         return null;
     }
     @Override
     protected Void visitPlusPreInc(AST node){
+        AST var = node.getChild(0);
+
+        Key k = var.key;
+        String descriptor = typeDescriptor(vt.getType(k));
+
+        //pega a referencia da variável
+        mv.visitFieldInsn(GETSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+        
+        switch(vt.getType(k).getType()){
+            case INT_TYPE:
+                mv.visitInsn(ICONST_1);
+                mv.visitInsn(IADD);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DCONST_1);
+                mv.visitInsn(DADD);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case LIST_TYPE:
+                visit(var.getChild(0));
+                if(vt.getType(k).getInner()==INT_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(IALOAD);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(IADD);
+                    mv.visitInsn(IASTORE);
+                }
+                else if(vt.getType(k).getInner()==DOUBLE_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(DALOAD);
+                    mv.visitInsn(DCONST_1);
+                    mv.visitInsn(DADD);
+                    mv.visitInsn(DASTORE);
+                }
+                break;
+        }
+        if(incrementalValueIsneed) visit(var);//coloca o valor na pilha pra usar na expressão
         return null;
     }
     @Override
     protected Void visitMinusPostInc(AST node){
+        AST var = node.getChild(0);
+        
+        if(incrementalValueIsneed) visit(var);//coloca o valor na pilha pra usar na expressão
+
+        Key k = var.key;
+        String descriptor = typeDescriptor(vt.getType(k));
+
+        //pega a referencia da variável
+        mv.visitFieldInsn(GETSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+        
+        switch(vt.getType(k).getType()){
+            case INT_TYPE:
+                mv.visitInsn(ICONST_1);
+                mv.visitInsn(ISUB);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DCONST_1);
+                mv.visitInsn(DSUB);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case LIST_TYPE:
+                visit(var.getChild(0));
+                if(vt.getType(k).getInner()==INT_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(IALOAD);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(ISUB);
+                    mv.visitInsn(IASTORE);
+                }
+                else if(vt.getType(k).getInner()==DOUBLE_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(DALOAD);
+                    mv.visitInsn(DCONST_1);
+                    mv.visitInsn(DSUB);
+                    mv.visitInsn(DASTORE);
+                }
+                break;
+        }
+
         return null;
     }
     @Override
     protected Void visitMinusPreInc(AST node){
+        AST var = node.getChild(0);
+    
+        Key k = var.key;
+        String descriptor = typeDescriptor(vt.getType(k));
+
+        //pega a referencia da variável
+        mv.visitFieldInsn(GETSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+        
+        switch(vt.getType(k).getType()){
+            case INT_TYPE:
+                mv.visitInsn(ICONST_1);
+                mv.visitInsn(ISUB);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case DOUBLE_TYPE:
+                mv.visitInsn(DCONST_1);
+                mv.visitInsn(DSUB);
+                mv.visitFieldInsn(PUTSTATIC,this.name,vt.getName(k).concat(Integer.toString(k.getId())),descriptor);
+                break;
+            case LIST_TYPE:
+                visit(var.getChild(0));
+                if(vt.getType(k).getInner()==INT_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(IALOAD);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitInsn(ISUB);
+                    mv.visitInsn(IASTORE);
+                }
+                else if(vt.getType(k).getInner()==DOUBLE_TYPE){
+                    mv.visitInsn(DUP2);
+                    mv.visitInsn(DALOAD);
+                    mv.visitInsn(DCONST_1);
+                    mv.visitInsn(DSUB);
+                    mv.visitInsn(DASTORE);
+                }
+                break;
+        }
+        if(incrementalValueIsneed) visit(var);//coloca o valor na pilha pra usar na expressão
         return null;
     }
     @Override
