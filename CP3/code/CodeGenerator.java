@@ -297,7 +297,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
 
         mv.visitJumpInsn(IFEQ, else_); // Se for falso (IF EQual 0), pula para as instruções else
         //THEN
-        visit(node.getChild(1));
+        if(node.getChild(1) != null) // Para o caso de if(condicao); -- inutil, masss...
+            visit(node.getChild(1));
+
         mv.visitJumpInsn(GOTO, end); // Finalizou o then, pula pro fim
         // ELSE
         mv.visitLabel(else_);
