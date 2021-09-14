@@ -917,7 +917,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         visit(node.getChild(0)); // Visita expressão antes de executar o loop
         mv.visitJumpInsn(IFEQ, end); //Se for falso, encerra o while
 
-        visit(node.getChild(1));  // se for verdadeiro, visita o corpo
+        if(node.getChild(1) != null) // Para o caso de while(condicao);
+            visit(node.getChild(1));  // se for verdadeiro, visita o corpo
 
         mv.visitJumpInsn(GOTO, start);
         mv.visitLabel(end);
