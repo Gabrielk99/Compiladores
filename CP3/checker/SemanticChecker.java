@@ -248,7 +248,7 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
             return null;
         }
         //Erro caso declara variável com um tipo não aceito
-        if(lastType.getType() == NO_TYPE){
+        if(lastType.getType() == NO_TYPE || lastType.getType() == VOID_TYPE ){
             System.err.printf("SEMANTIC ERROR (%d): incompatible type for var declaration '%s'\n",line,lastVarName);
             System.exit(1);
             return null;
@@ -825,15 +825,15 @@ public class SemanticChecker extends DartBaseVisitor<AST> {
         }
 
         if(ctx.selector()!=null && ctx.selector().size()==1){ //verifico se existe um selector
-            Token lastFunc = lastVar;
-            AST node = visit(ctx.selector(0));
+            Token lastName = lastVar;
+            AST node = visit(ctx.selector(0)); 
             if(node.kind==FUNC_USE_ARGUMENTS_NODE){ //e se ele é chamada de função
-                AST rt = checkFunc(lastFunc,lastParameters,node); //cria o no de uso de função checando os parametros
+                AST rt = checkFunc(lastName,lastParameters,node); //cria o no de uso de função checando os parametros
                 
                 return rt;
             }
             else if(node.kind==LIST_USE){
-                AST rt = checkVar(lastVar);
+                AST rt = checkVar(lastName); //List name check
                 if(rt.type.getType()!=LIST_TYPE){
                     System.err.printf("SEMANTIC ERROR (%d): the variable '%s' is not a List\n",
                     ctx.getStart().getLine(),vt.getName(rt.key));

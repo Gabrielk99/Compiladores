@@ -4,7 +4,7 @@ void main(){
    //Erro 1
     int x = 0;
     String x = 2;
-
+    //void c;
     // //Erro2
     // int a = "a";
 

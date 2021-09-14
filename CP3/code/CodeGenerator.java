@@ -96,6 +96,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         MethodVisitor oldMV = mv; //Salvando a referência do escritor de funções antigo
                                 //como podemos ter funções locais, sempre que for declarar função
                                 //é interessante salvar a referência antiga para recuperar após a finalização
+        String oldNameFunction = nameFunction;//salvando o nome da função anterior (tratamentos)
+        Key oldChaveFunction = chaveFunction;//salvando a chave da função anterior (tratamentos)
 
         visit(node.getChild(0)); //visita a declaração (nome e tipo de retorno)       
       
@@ -137,6 +139,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
                             //API obriga a chamada do metodo
 
         mv = oldMV; //Recupera a referência do método antigo
+        nameFunction=oldNameFunction;//recupera o nome da função antiga
+        chaveFunction=oldChaveFunction;//recupera a chave da função antiga
 
         return null;
     
@@ -159,10 +163,10 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitFuncParameter(AST node){
         int i = 0;
-        System.out.println(node.kind);
         
         while(node.getChild(i)!=null){
-            System.out.println(node.getChild(0).kind);
+            visit(node.getChild(i));//declaração do parametro
+
             AST child = node.getChild(i);
 
             switch(child.type.getType()){ //Verifica o tipo antes de carregar na pilha
@@ -235,7 +239,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         Key k = node.getChild(0).key;
         String descriptor = typeDescriptor(vt.getType(k));
 
-        if(vt.getType(k).getType() == LIST_TYPE) {
+        if(vt.getType(k).getType() == LIST_TYPE && node.getChild(0).getChild(0)!=null ) {
             mv.visitFieldInsn(GETSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())), descriptor); // Coloca referencia da lista na pilha
             visit(node.getChild(0).getChild(0)); // (no lista -> no indice) coloca indice na pilha
             visit(node.getChild(1)); // Visita a expressao da atribuicao (valor resultante fica na pilha)
@@ -386,7 +390,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     protected Void visitPlus(AST node){
         visit(node.getChild(0));
         visit(node.getChild(1));
-        
+
         //Verifica o tipo para chamar corretamente a operação
         switch(node.type.getType()){
             case INT_TYPE:
@@ -957,13 +961,13 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     //Retorna a função
     @Override
     protected Void visitFuncReturn(AST node){
-        if(node.getChild(0)==null) return null; //caso não tenha filho é return; (não fazemos nada)
+        if(node.getChild(0)==null || (nameFunction.equals("main") && chaveFunction.getId()==0)) return null; //caso não tenha filho é return; (não fazemos nada)
                                     //Por que o (RETURN) ta sendo feito no instanceFunction
 
         else{ //se tiver um filho, ele retorna uma expressão
             visit(node.getChild(0)); //resolve a expressão e coloca na pilha
             
-            switch(node.type.getType()){ //verifica o tipo de retorno
+            switch(ft.getType(chaveFunction).getType()){ //verifica o tipo de retorno
                 case DOUBLE_TYPE:
                     mv.visitInsn(DRETURN);
                     break;

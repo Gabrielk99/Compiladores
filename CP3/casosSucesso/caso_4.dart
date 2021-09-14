@@ -7,6 +7,7 @@ void main (){
     while(i < 5){
         i+=1;
         int x = i;
+        print(x);
     }
 
     while(true){

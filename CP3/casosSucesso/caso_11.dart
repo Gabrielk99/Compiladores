@@ -9,5 +9,6 @@ int main(){
 
     outraCoisaLegal(5.3);
   }
+  algoLegal(54,"vaca velha gorda");
   return 10;
 }

@@ -39,7 +39,7 @@ javac:
 	mkdir $(BIN_PATH)
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) */*.java
 
-NAME=caso_1
+NAME=caso_12
 FILE=casosSucesso/$(NAME).dart
 
 run:
@@ -61,4 +61,4 @@ runallerro:
 	 	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $${FILE} ;\
 	done;
 clean:
-	@rm -rf $(GEN_PATH) $(BIN_PATH) .antlr resultados/*.*
+	@rm -rf $(GEN_PATH) $(BIN_PATH) .antlr resultados/*.* *.class
