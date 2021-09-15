@@ -1,4 +1,4 @@
-double k =1, z, j = 5;
+double k =1, z=4, j = 5;
 
 void main(){
     for(int i = 0; i<10; i++){

@@ -39,12 +39,12 @@ javac:
 	mkdir $(BIN_PATH)
 	$(JAVAC) $(CLASS_PATH_OPTION) -d $(BIN_PATH) */*.java
 
-NAME=caso_12
+NAME=caso_4
 FILE=casosSucesso/$(NAME).dart
 
 run:
-	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $(FILE)
-	dot -Tpng resultados/$(NAME).dot > resultados/$(NAME).png
+	$(JAVA) $(CLASS_PATH_OPTION):$(BIN_PATH) $(MAIN_PATH)/Main $(FILE) && \
+	dot -Tpng resultados/$(NAME).dot > resultados/$(NAME).png;
 
 runall:
 	-for FILE in $(IN)/*.dart; do \

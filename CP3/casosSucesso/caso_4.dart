@@ -11,6 +11,7 @@ void main (){
     }
 
     while(true){
+        print("escreva algo:");
         String x = readLine();
         print("BATATA"+x);
     }

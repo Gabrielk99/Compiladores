@@ -2,8 +2,10 @@
 //Comente e descomente para ver os erros
 void main(){
    //Erro 1
-    int x = 0;
-    String x = 2;
+    // int x = 0;
+    // String x = 2;
+    int z;
+    print(z);
     //void c;
     // //Erro2
     // int a = "a";

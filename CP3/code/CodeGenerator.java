@@ -28,10 +28,11 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     public final FuncTable ft; //tabela de funções
     public final StrTable st; //tabela de strings
     public final String name; //nome do arquivo de teste (usado para gerar o binario final name.class)
-    public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES|ClassWriter.COMPUTE_MAXS);
+    public final ClassWriter cw =  new ClassWriter(ClassWriter.COMPUTE_FRAMES|ClassWriter.COMPUTE_MAXS); //classe principal do programa (gera os metodos e campos)
     
     MethodVisitor mv; //Variável global para construir funções
     boolean incrementalValueIsneed=false; //para saber quando colocar o valor de um ++ ou -- na pilha
+    Hashtable <Key,Boolean> tabelaDeDefinicoes = new Hashtable <Key,Boolean> ();//auxiliar para anasile de uso de variável sem valor
 
     //Construtor
     public CodeGenerator(StrTable st, VarTable vt, FuncTable ft,String name){
@@ -220,6 +221,8 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
             mv.visitFieldInsn(PUTSTATIC, this.name, k.getName().concat(Integer.toString(k.getId())),
                    descriptor);
         }
+        else tabelaDeDefinicoes.replace(node.getChild(0).key,false);//se não é criado com valor, vamos trocar para falso
+                                                                    //pois ao adicionar uma variavel na tabela sempre é adicionada com true
         return null;
     }
     @Override
@@ -237,6 +240,9 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         incrementalValueIsneed=true;//Numa atribuição se há incremental, o valor na pilha não faz mal.
 
         Key k = node.getChild(0).key;
+        
+        if(!tabelaDeDefinicoes.get(k)) tabelaDeDefinicoes.replace(k,true); //se houver atribuição em variável sem valor trocamos então para true
+
         String descriptor = typeDescriptor(vt.getType(k));
 
         if(vt.getType(k).getType() == LIST_TYPE && node.getChild(0).getChild(0)!=null ) {
@@ -953,6 +959,11 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitVarDecl(AST node){
         Key k = node.key;
+        
+        tabelaDeDefinicoes.put(k,true);//Inicializo primeiramente todas como se tivessem sido definidas
+                                        //isso me garante que os parametros de funções sempre vão ser true
+                                        //parametros sempre tem valores associados
+        
         String descriptor = typeDescriptor(vt.getType(k));
         cw.visitField(ACC_PRIVATE+ACC_STATIC,vt.getName(k).concat(Integer.toString(k.getId())),descriptor,null,null).visitEnd();//Escreve o atributo (a variável)
                                                                                                             //visitEnd(); sinaliza a finalização do campo
@@ -986,6 +997,12 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
     @Override
     protected Void visitVarUse(AST node){
         Key k = node.key; //pega a chave de vt
+       
+        if(!tabelaDeDefinicoes.get(k)){
+            System.err.printf("Variable %s in line %d need been declared to be used\n",vt.getName(k),vt.getLine(k));
+            System.exit(1);
+        }
+        
         String name = vt.getName(k).concat(Integer.toString(k.getId())); //pega o nome da variável
         String descriptor = typeDescriptor(vt.getType(k));
 
