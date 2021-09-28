@@ -1073,7 +1073,7 @@ public class CodeGenerator extends ASTBaseVisitor <Void>{
         //Lendo da entrada
         else if (ft.getName(k).equals("readLine")){
             mv.visitFieldInsn(GETSTATIC,this.name,"in","Ljava/util/Scanner;");
-            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","next","()Ljava/lang/String;",false);
+            mv.visitMethodInsn(INVOKEVIRTUAL,"java/util/Scanner","nextLine","()Ljava/lang/String;",false);
             incrementalValueIsneed=false; //saindo da chamada de função desativar é a solução
             return null;
         }
